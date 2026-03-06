@@ -9,12 +9,23 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^8.3.0",
+    "@opentelemetry/api": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
+    "cookies-next": "^6.1.1",
+    "firebase": "^12.10.0",
+    "firebase-admin": "^13.7.0",
+    "framer-motion": "^12.34.5",
+    "gsap": "^3.14.2",
+    "lenis": "^1.3.18",
+    "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

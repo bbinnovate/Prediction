@@ -1,26 +1,447 @@
+/* @import url("https://fonts.googleapis.com/css2?family=Miso:wght@300;400;700&family=Poppins:wght@400;700&display=swap"); */
 @import "tailwindcss";
 
+/* =========================================
+   FONT VARIABLES & COLORS
+   ========================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --font-miso: "Miso", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
+  --font-bold-miso: "Miso", sans-serif;
+  --font-regular-miso: "Miso", sans-serif;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* =========================
+     Headings - Desktop Sizes
+     ========================= */
+  --h1-size: 85px;  /* ✅ Hero section heading (1st section of all pages) */
+  --h2-size: 60px;  /* ✅ Section titles, quotes, and large paragraph text */
+  --h3-size: 36px;  /* ✅ Titles and descriptions */
+  --h4-size: 32px;  /* ✅ Navigation, “Connect & Grow” (footer heading) */
+  --h5-size: 22px;  /* ✅ Blog titles */
+  --h6-size: 18px;  /* ✅ Extra (currently not used much) */ 
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* =========================
+     Body - Desktop Sizes
+     ========================= */
+  --body1-size: 36px; /* ✅ Testimonials, our work stack cards */
+  --body2-size: 18px; /* ✅ Paragraph description text */
+  --body3-size: 16px; /* ✅ Form placeholders, testimonial names, filter tags, buttons */
+  --body4-size: 14px; /* ✅ Footer menu links */
+
+  /* =========================
+     Specials - Numbers
+     ========================= */
+  --stats-size: 250px;       /* ✅ Stats numbers (highlighting data) */
+  --numbering-size: 120px; 
+  --casenumbering-size: 120px;   /* ✅ Card number sequence (case study, service card, work) */
+  --single-title-size: 100px; /* ✅ Single large title (e.g., 404 page) */
+
+  /* =========================
+     Colors
+     ========================= */
+  --color-primary: #1d1d1d;
+  --color-highlight: #fab31e;
+  --color-secondary: #fdfdfd;
+  --color-grey: #898989;
+  --color-text-muted: #ababab;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-poppins);
+ @apply relative w-full min-h-screen overflow-x-hidden;
+background-image: url("/images/bg.svg");
+background-size: cover;
+background-attachment: fixed;
+  color: var(--color-primary);
+}
+
+h1 {
+  font-family: var(--font-bold-miso);
+  font-size: var(--h1-size); /* ✅ Hero Section heading */
+  line-height: 1em;
+  text-transform: capitalize;
+}
+
+h2 {
+  font-family: var(--font-regular-miso);
+  font-size: var(--h2-size); /* ✅ Section titles, quotes, large paras */
+  line-height: 1.2em;
+  text-transform: capitalize;
+}
+
+h3 {
+  font-family: var(--font-regular-miso);
+  font-size: var(--h3-size); /* ✅ Titles and descriptions */
+  line-height: 1.2em;
+  text-transform: capitalize;
+}
+
+h4 {
+  font-family: var(--font-regular-miso);
+  font-size: var(--h4-size); /* ✅ Navigation headings, footer "Connect & Grow" */
+  line-height: 1.2em;
+  text-transform: capitalize;
+}
+
+h5 {
+  font-family: var(--font-regular-miso);
+  font-size: var(--h5-size); /* ✅ Blog titles */
+  line-height: 1.2em;
+}
+
+h6 {
+  font-family: var(--font-regular-miso);
+  font-size: var(--h6-size); /* ✅ Extra - rarely used */
+  line-height: 1.2em;
+}
+
+/* =========================================
+   BODY TEXT (Desktop Defaults)
+   ========================================= */
+.body1 {
+  font-family: var(--font-poppins);
+  font-size: var(--body1-size); /* ✅ Form labels, testimonials, our work cards */
+  font-weight: 400;
+  line-height: 1.5em;
+}
+
+.body2 {
+  font-family: var(--font-poppins);
+  font-size: var(--body2-size); /* ✅ Paragraph description text */
+  font-weight: 400;
+  line-height: 1.5em;
+}
+
+.body3 {
+  font-family: var(--font-poppins);
+  font-size: var(--body3-size); /* ✅ Form placeholder, testimonial name, filter tag, button */
+  font-weight: 500;
+  line-height: 1.2em;
+}
+
+.body4 {
+  font-family: var(--font-poppins);
+  font-size: var(--body4-size); /* ✅ Footer menu */
+  font-weight: 400;
+  line-height: 1.5em;
+}
+
+/* =========================================
+   SPECIAL NUMBERS (Desktop Defaults)
+   ========================================= */
+.stats-number {
+  font-family: var(--font-regular-miso);
+  font-size: var(--stats-size); /* ✅ Stats numbers */
+  font-weight: 400;
+  line-height: 1em;
+}
+
+.numbering {
+  font-family: var(--font-regular-miso);
+  font-size: var(--numbering-size); /* ✅ Card number sequence */
+  font-weight: 400;
+  line-height: 1em;
+}
+
+
+.casenumbering {
+  font-family: var(--font-regular-miso);
+  font-size: var(--numbering-size); /* ✅ Card number sequence */
+  font-weight: 400;
+  line-height: 0.9em;
+}
+/* / */
+
+.single-title {
+  font-family: var(--font-bold-miso);
+  font-size: var(--single-title-size); /* ✅ Single large title (e.g., 404 page) */
+  font-weight: 400;
+  line-height: 0.8em;
+}
+
+::placeholder{
+  font-size: var(--body3-size);
+  font-family: var(--font-poppins);
+  font-weight: 400;
+  line-height: 1em;
+}
+/* =========================================
+   UTILITY TEXT COLORS
+   ========================================= */
+.text-highlight {
+  color: var(--color-highlight);
+}
+
+.black-text {
+  color: var(--color-primary);
+}
+
+.white-text {
+  color: var(--color-secondary);
+}
+
+.grey-text {
+  color: var(--color-grey);
+}
+
+/* =========================================
+   RESPONSIVE TYPOGRAPHY (Tablet & Mobile)
+   ========================================= */
+@media screen and (max-width: 768px) {
+  /* ---------- Headings ---------- */
+  h1 { font-size: 32px !important; }  
+  h2 { font-size: 30px !important; }
+  h3 { font-size: 24px !important; }
+  h4 { font-size: 25px !important; }
+  h4 { font-size: 25px !important; }
+  h5 { font-size: 20px !important; }
+  h6 { font-size: 16px !important; }
+
+  /* ---------- Body ---------- */
+  .body1 { font-size: 20px !important; }
+  .body2 { font-size: 15px !important; }
+  .body3 { font-size: 16px !important; }
+  .body4 { font-size: 14px !important; }
+
+  /* ---------- Numbers ---------- */
+  .stats-number { font-size: 50px; }
+  .numbering { font-size: 50px; }
+  .casenumbering { font-size: 60px; }
+  .single-title { font-size: 60px; }
+}
+
+
+/* body {
+  @apply relative w-full min-h-screen overflow-x-hidden;
+  background: url("/images/bg.svg") center center;
+} */
+
+.container,
+.container-fluid,
+.container-xxl,
+.container-xl,
+.container-lg,
+.container-md,
+.container-sm {
+    width: 100%;
+    padding-right: 0px !important;
+    padding-left: 0px !important;
+    margin-right: auto !important;
+    margin-left: auto !important;
+}
+
+@media screen and (min-width: 0px) and (max-width: 750px) {
+
+    .container-sm,
+    .container {
+        width: 100%;
+        padding-right: 20px !important;
+        padding-left: 20px !important;
+        margin-right: auto !important;
+        margin-left: auto !important;
+    }
+
+}
+
+@media (min-width: 576px) {
+
+    .container-sm,
+    .container {
+        max-width: 540px;
+    }
+}
+
+@media (min-width: 768px) {
+
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 960px;
+
+    }
+}
+
+@media (min-width: 992px) {
+
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 1000px;
+
+    }
+}
+
+@media (min-width: 1200px) {
+
+    .container-xl,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 1200px;
+
+    }
+}
+
+@media (min-width: 1400px) {
+
+    .container-xxl,
+    .container-xl,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 1400px;
+    }
+}
+
+@media (min-width: 1600px) {
+
+    .container-xxl,
+    .container-xl,
+    .container-lg,
+    .container-md,
+    .container-sm,
+    .container {
+        max-width: 1600px;
+    }
+}
+
+
+.small-placeholder::placeholder {
+  font-size: var(--body4-size);
+}
+
+
+/* servicesPage SeventhSection Text Animation */
+@keyframes highlight {
+  0% { color: #FAB31E; }
+  33.333% { color: #FAB31E; }
+  33.334% { color: #FFFFFF; }
+  100% { color: #FFFFFF; }
+}
+
+.animated-word {
+  color: #FFFFFF; /* default white */
+  animation: highlight 3s steps(1, end) infinite;
+  animation-fill-mode: both;
+  transition: none !important; /* prevent any global transitions */
+}
+
+/* Order: Connect → Collaborate → Grow */
+.animated-word:nth-child(1) { animation-delay: 0s; }
+.animated-word:nth-child(2) { animation-delay: 1s; }
+.animated-word:nth-child(3) { animation-delay: 2s; }
+
+
+
+.perspective {
+  perspective: 1000px;
+}
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+.backface-hidden {
+  backface-visibility: hidden;
+}
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+
+
+/* animation button */
+:root {
+  --border: 2px;
+  --radius: 60px;
+  --color-button: #fab31e;
+}
+
+.animated-border-btn {
+  position: relative;
+  background: transparent;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  letter-spacing: 1px;
+  padding: 7px 13px; /* Adjust padding instead of fixed width */
+  animation: glow 2s linear infinite;
+  white-space: nowrap; /* Prevent breaking text */
+}
+
+.animated-border-btn::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  aspect-ratio: 1/1;
+  width: 200%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    var(--color-button) 0%,
+    transparent 25%,
+    var(--color-button) 50%,
+    transparent 75%,
+    var(--color-button) 100%
+  );
+  animation: spin 2s linear infinite;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+}
+
+.animated-border-btn::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% - var(--border));
+  height: calc(100% - var(--border));
+  border-color: #fff;
+  background: rgba(0, 0, 0, 0.85);
+  border-radius: var(--radius);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  backdrop-filter: blur(6px);
+}
+
+.animated-border-btn span {
+  position: relative;
+  z-index: 2;
+}
+
+
+
+/* type form css  */
+
+@keyframes fadeSlide {
+0% {
+opacity:0;
+transform:translateY(30px);
+}
+100%{
+opacity:1;
+transform:translateY(0);
+}
+}
+
+.animate-fade{
+animation:fadeSlide .4s ease;
+}
+
+
+/* cadrdborder */
+.candy-border {
+  background: repeating-linear-gradient(
+    -40deg,
+    #fab31e
+  );
 }
