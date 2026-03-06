@@ -6,14 +6,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { deleteDoc } from "firebase/firestore";
 import { NextResponse } from "next/server";
+import { query, orderBy } from "firebase/firestore";
 
 export default function Admin() {
   const [users, setUsers] = useState<any[]>([]);
   const [selected, setSelected] = useState("");
   const router = useRouter();
-  const sortedUsers = [...users].sort(
-  (a,b)=>(Number(b.score)||0)-(Number(a.score)||0)
-)
+ 
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (user) => {
       if (!user) {
@@ -36,14 +35,17 @@ if (snap.data().role !== "admin") {
 }
 
       // load users only if admin
-      const usersSnap = await getDocs(collection(db, "users"));
+      const q = query(collection(db, "users"), orderBy("score", "desc"));
+const usersSnap = await getDocs(q);
 
-      setUsers(
-        usersSnap.docs.map((d) => ({
-          ...d.data(),
-          id: d.id,
-        })),
-      );
+setUsers(
+  usersSnap.docs.map((d) => ({
+    ...d.data(),
+    id: d.id,
+    score: Number(d.data().score) || 0
+  }))
+);
+
     });
 
     return () => unsub();
@@ -140,7 +142,7 @@ const assign = async () => {
           </thead>
 
           <tbody className="divide-y divide-gray-100">
-            {sortedUsers.map((user, index) => {
+           {users.map((user, index) => {
                 let joinedDate = "—";
 
                 if (user.createdAt) {

@@ -13,6 +13,7 @@ const avatars = [
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
 ];
+
 type User = {
   id: string;
   name?: string;
@@ -136,10 +137,10 @@ export default function Leaderboard() {
       <div className="relative">
         <img
           src={top3[1].avatar}
-          className="w-20 h-20 rounded-full border-4 border-blue-400"
+          className="w-20 h-20 rounded-full border-4 border-[#fab31e]"
         />
 
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#fab31e] text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
           2
         </div>
       </div>
@@ -158,10 +159,10 @@ export default function Leaderboard() {
       <div className="relative">
         <img
           src={top3[0].avatar}
-          className="w-24 h-24 rounded-full border-4 border-purple-500"
+          className="w-24 h-24 rounded-full border-4 border-[#fab31e]"
         />
 
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs w-7 h-7 rounded-full flex items-center justify-center">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#fab31e] text-white text-xs w-7 h-7 rounded-full flex items-center justify-center">
           1
         </div>
       </div>
@@ -178,10 +179,10 @@ export default function Leaderboard() {
       <div className="relative">
         <img
           src={top3[2].avatar}
-          className="w-20 h-20 rounded-full border-4 border-indigo-400"
+          className="w-20 h-20 rounded-full border-4 border-[#fab31e]"
         />
 
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#fab31e] text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
           3
         </div>
       </div>

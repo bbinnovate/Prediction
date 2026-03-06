@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
         <p>Please click the button below to open the curator page.</p>
 
-        <a href="https://yourdomain.com/curator"
+        <a href="https://prediction-pearl-chi.vercel.app/curator"
            style="
              display:inline-block;
              padding:12px 24px;
