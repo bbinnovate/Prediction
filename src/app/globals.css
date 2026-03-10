@@ -445,3 +445,37 @@ animation:fadeSlide .4s ease;
     #fab31e
   );
 }
+
+
+
+.react-calendar {
+  width: 100%;
+  border: none;
+  font-family: inherit;
+}
+
+.react-calendar__month-view__days__day {
+  height: 120px;
+  font-weight: 500;
+}
+
+.react-calendar__tile {
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  padding: 10px;
+}
+
+.react-calendar__tile--active {
+  background: #fab31e !important;
+  color: black !important;
+}
+
+.react-calendar__tile:hover {
+  background: #f3f4f6;
+}
+
+.fc-event {
+  border-radius: 6px;
+  padding: 2px 4px;
+  font-size: 13px;
+}

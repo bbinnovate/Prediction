@@ -8,6 +8,13 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { setCookie } from "cookies-next";
 import Button from "../components/Button";
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  getDoc,
+} from "firebase/firestore";
 
 export default function Signup() {
   const router = useRouter();
@@ -21,16 +28,25 @@ export default function Signup() {
   const [emailError, setEmailError] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    if (nameError || emailError) {
+    if (nameError || emailError || pinError || pin.length !== 4) {
       setLoading(false);
       return;
     }
+  const pinDoc = await getDoc(doc(db,"pinLogin",pin));
+
+if(pinDoc.exists()){
+ alert("PIN already used");
+ setLoading(false);
+ return;
+}
 
     try {
       const res = await createUserWithEmailAndPassword(auth, email, password);
@@ -38,12 +54,18 @@ export default function Signup() {
       const user = res.user;
 
       await setDoc(doc(db, "users", user.uid), {
-        name,
-        email,
-        role: "user",
-        score: 0,
-        createdAt: serverTimestamp()
-      });
+  name,
+  email,
+  pin,
+  role: "user",
+  score: 0,
+  createdAt: serverTimestamp()
+});
+
+// create PIN login mapping
+await setDoc(doc(db, "pinLogin", pin), {
+  uid: user.uid
+});
 
       const token = await user.getIdToken();
 
@@ -104,6 +126,24 @@ export default function Signup() {
     setEmail(value);
   }
 
+  function handlePinChange(value: string) {
+
+  if (!/^\d*$/.test(value)) {
+    setPinError("PIN must contain only numbers");
+    return;
+  }
+
+  if (value.length > 4) return;
+
+  setPin(value);
+
+  if (value.length !== 4) {
+    setPinError("PIN must be exactly 4 digits");
+  } else {
+    setPinError("");
+  }
+}
+
   return (
     <div className=" container lg:py-20 md:py-15 py-10 flex items-center justify-center min-h-screen">
       <div className="flex items-center justify-center">
@@ -159,6 +199,18 @@ export default function Signup() {
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
           </div>
+
+          <input
+  type="text"
+  value={pin}
+  onChange={(e) => handlePinChange(e.target.value)}
+  placeholder="4 Digit Login PIN"
+  required
+  maxLength={4}
+  className="w-full border p-2 rounded text-white bg-black"
+/>
+
+{pinError && <p className="text-red-500 text-xs">{pinError}</p>}
 
           <Button
             type="submit"

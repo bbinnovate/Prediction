@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
+import { Menu, X } from 'lucide-react';
 
 export default function DesktopNav() {
   const pathname = usePathname();
@@ -108,11 +109,17 @@ export default function DesktopNav() {
 
           {/* MOBILE HAMBURGER */}
 
-          <div className="md:hidden ml-auto px-6">
-            <button onClick={() => setMenuOpen(!menuOpen)} className="text-xl">
-              ☰
-            </button>
-          </div>
+         
+
+ <div className="md:hidden ml-auto px-5">
+  <button  onClick={() => setMenuOpen(!menuOpen)}>
+    {menuOpen ? (
+      <X className="w-8 h-8 text-black" />
+    ) : (
+      <Menu className="w-8 h-8 text-black" />
+    )}
+  </button>
+</div>
         </div>
 
         {/* MOBILE MENU */}

@@ -8,13 +8,13 @@ import {
   orderBy,
   limit,
   addDoc,
+  where,
+  doc,
+  getDoc ,
 } from "firebase/firestore";
 import { updateLeaderboard } from "@/lib/updateLeaderboard";
 import { db, auth } from "@/lib/firebase";
 import Button from "./Button";
-
-
-
 
 const shootBottomSideConfetti = async () => {
   const confetti = (await import("canvas-confetti")).default;
@@ -25,7 +25,6 @@ const shootBottomSideConfetti = async () => {
   const colors = ["#f6a81c", "#ff4d6d", "#ffffff"];
 
   (function frame() {
-
     confetti({
       particleCount: 6,
       angle: 60,
@@ -59,8 +58,16 @@ export default function LandingPage() {
   const [finished, setFinished] = useState(false);
   const totalSteps = questions?.length || 0;
   const progressPercentage = Math.round((step / (totalSteps - 1)) * 100);
+  const [role, setRole] = useState<string | null>(null);
+  const [checkingRole, setCheckingRole] = useState(true);
+  const [showPinPopup, setShowPinPopup] = useState(false);
+  const [pin, setPin] = useState("");
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   useEffect(() => {
+    if (checkingRole) return;
+    if (role === "admin") return;
+
     const loadQuestions = async () => {
       const q = query(
         collection(db, "questions"),
@@ -79,73 +86,117 @@ export default function LandingPage() {
     };
 
     loadQuestions();
+  }, [checkingRole, role]);
+
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        setCheckingRole(false);
+        return;
+      }
+
+      const snap = await getDoc(doc(db, "users", user.uid));
+
+      if (snap.exists()) {
+        const userRole = snap.data().role?.toString().trim().toLowerCase();
+        setRole(userRole);
+      }
+
+      setCheckingRole(false);
+    });
+
+    return () => unsub();
   }, []);
 
   useEffect(() => {
-  if (!finished) return;
+    if (!finished) return;
 
-  shootBottomSideConfetti();
+    shootBottomSideConfetti();
 
-  const audio = new Audio("/confetti.mp3");
-  audio.volume = 0.8;
-  audio.play();
+    const audio = new Audio("/confetti.mp3");
+    audio.volume = 0.8;
+    audio.play();
 
-  const stopTimer = setTimeout(() => {
-    audio.pause();
-    audio.currentTime = 0;
-  }, 10000);
+    const stopTimer = setTimeout(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }, 10000);
 
-  return () => clearTimeout(stopTimer);
-}, [finished]);
+    return () => clearTimeout(stopTimer);
+  }, [finished]);
 
-const saveVotes = async () => {
-  const user = auth.currentUser;
+  const submitVotes = async (uid: any) => {
+    for (const qid of Object.keys(answers)) {
+      await addDoc(collection(db, "votes"), {
+        userId: uid,
+        questionId: qid,
+        answer: answers[qid],
+        createdAt: new Date(),
+      });
+    }
 
-  if (!user) {
-    alert("Please login before submitting.");
+    const correctAnswers: any = {};
+
+    questions.forEach((q) => {
+      if (q.correctAnswer !== null && q.correctAnswer !== undefined) {
+        correctAnswers[q.id] = q.correctAnswer;
+      }
+    });
+
+    if (Object.keys(correctAnswers).length === 5) {
+      await updateLeaderboard(correctAnswers, uid);
+    }
+
+    setFinished(true);
+  };
+
+  const saveVotes = async () => {
+    const user = auth.currentUser;
+
+    if (!user) {
+      setShowPinPopup(true);
+      setPendingSubmit(true);
+      return;
+    }
+
+    await submitVotes(user.uid);
+  };
+
+const verifyPin = async () => {
+
+  if (pin.length !== 4) {
+    alert("Enter 4 digit PIN");
     return;
   }
 
-  // save votes
-  for (const qid of Object.keys(answers)) {
-    await addDoc(collection(db, "votes"), {
-      userId: user.uid,
-      questionId: qid,
-      answer: answers[qid],
-      createdAt: new Date(),
-    });
+  const snap = await getDoc(doc(db, "pinLogin", pin));
+
+  if (!snap.exists()) {
+    alert("Incorrect PIN");
+    return;
   }
 
-  // check if answers already exist
-  const correctAnswers: any = {};
+  const uid = snap.data().uid;
 
-  questions.forEach((q) => {
-    if (q.correctAnswer !== null && q.correctAnswer !== undefined) {
-      correctAnswers[q.id] = q.correctAnswer;
+  setShowPinPopup(false);
+
+  if (pendingSubmit) {
+    await submitVotes(uid);
+  }
+
+};
+
+  const selectAnswer = (qid: any, value: any) => {
+    setAnswers((prev: any) => ({
+      ...prev,
+      [qid]: value,
+    }));
+
+    // move automatically to next question
+    if (step < totalSteps - 1) {
+      setStep(step + 1);
     }
-  });
-
-  // if curator already published answers → calculate score
-  if (Object.keys(correctAnswers).length === 5) {
-    await updateLeaderboard(correctAnswers, user.uid);
-  }
-
-  setFinished(true);
-};
-
- const selectAnswer = (qid:any,value:any)=>{
-
-  setAnswers((prev:any)=>({
-    ...prev,
-    [qid]:value
-  }));
-
-  // move automatically to next question
-  if(step < totalSteps - 1){
-    setStep(step + 1);
-  }
-
-};
+  };
 
   const nextQuestion = () => {
     if (!answers[current.id]) {
@@ -162,12 +213,33 @@ const saveVotes = async () => {
     }
   };
 
-  const current = questions[step];
-
-  if (!current) {
+  if (checkingRole) {
     return (
       <section className="h-screen flex items-center justify-center">
-        <p>Loading questions...</p>
+        <p className="text-white">Loading...</p>
+      </section>
+    );
+  }
+
+  if (role === "admin") {
+    return (
+      <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          <h2 className="text-3xl text-white mb-6">You are an Admin</h2>
+
+          <p className="text-gray-300 mb-8">
+            You are not allowed to vote.
+            <br />
+            Please assign a curator.
+          </p>
+
+          <Button
+            className=" white-text"
+            text="Go to Admin Panel"
+            onClick={() => (window.location.href = "/admin")}
+          />
+          <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+        </div>
       </section>
     );
   }
@@ -186,6 +258,16 @@ const saveVotes = async () => {
 
           <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
         </div>
+      </section>
+    );
+  }
+
+  const current = questions[step];
+
+  if (!current) {
+    return (
+      <section className="h-screen flex items-center justify-center">
+        <p className="text-white">Loading questions...</p>
       </section>
     );
   }
@@ -263,17 +345,48 @@ const saveVotes = async () => {
                 No
               </button>
 
-            
+              {showPinPopup && (
+                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                  <div className="bg-white p-6 rounded-xl w-[300px]">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Enter Your 4 Digit PIN
+                    </h3>
+
+                    <input
+                      type="password"
+                      maxLength={4}
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value)}
+                      className="w-full border p-2 rounded mb-4"
+                      placeholder="••••"
+                    />
+
+                    <button
+                      onClick={verifyPin}
+                      className="w-full bg-black text-white py-2 rounded"
+                    >
+                      Verify
+                    </button>
+
+                    <button
+                      onClick={() => setShowPinPopup(false)}
+                      className="mt-2 w-full border py-2 rounded"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {step === totalSteps - 1 && (
-  <div className="ml-auto">
-    <Button
-      onClick={saveVotes}
-      text="Submit"
-      className="text-white"
-    />
-  </div>
-)}
+                <div className="ml-auto">
+                  <Button
+                    onClick={saveVotes}
+                    text="Submit"
+                    className="text-white"
+                  />
+                </div>
+              )}
             </div>
           </div>
         </div>

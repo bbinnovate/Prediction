@@ -173,11 +173,26 @@ setAnswered(true);
 
   if (answered) {
     return (
-      <div className="container h-screen lg:pt-40 pt-0 lg:py-20 md:py-15 py-10">
-        <h1 className="text-2xl font-bold">
-          You have answered today's questions. Thank you.
-        </h1>
-      </div>
+
+ <section className="container h-screen flex items-center justify-center">
+  <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+    
+    <h2 className="max-w-4xl mx-auto text-white mb-6">
+      You have answered today's questions. Thank you.
+    </h2>
+
+    <Button
+      className="white-text"
+      text="View Leaderboard"
+      onClick={() => (window.location.href = "/leaderboard")}
+    />
+
+    <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+  
+  </div>
+</section>
+
+
     );
   }
 

@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.20",
+    "@fullcalendar/interaction": "^6.1.20",
+    "@fullcalendar/react": "^6.1.20",
     "@google-cloud/firestore": "^8.3.0",
     "@opentelemetry/api": "^1.9.0",
     "canvas-confetti": "^1.9.4",
@@ -21,6 +24,7 @@
     "lucide-react": "^0.577.0",
     "next": "16.1.6",
     "react": "19.2.3",
+    "react-calendar": "^6.0.0",
     "react-dom": "19.2.3"
   },
   "devDependencies": {

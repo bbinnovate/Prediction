@@ -4,15 +4,25 @@ import { db, auth } from "@/lib/firebase";
 import { collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { deleteDoc } from "firebase/firestore";
-import { NextResponse } from "next/server";
 import { query, orderBy } from "firebase/firestore";
+import { ChevronDown } from "lucide-react";
+
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import { deleteDoc } from "firebase/firestore";
+import Button from "./Button";
 
 export default function Admin() {
-  const [users, setUsers] = useState<any[]>([]);
-  const [selected, setSelected] = useState("");
   const router = useRouter();
- 
+
+  const [users, setUsers] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedDate, setSelectedDate] = useState("");
+  const [selectedUser, setSelectedUser] = useState("");
+
+  /* ---------------- AUTH + LOAD USERS ---------------- */
+
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (user) => {
       if (!user) {
@@ -20,218 +30,375 @@ export default function Admin() {
         return;
       }
 
-      // get user role
       const snap = await getDoc(doc(db, "users", user.uid));
 
-if (!snap.exists()) {
-  await auth.signOut();
-  router.push("/login");
-  return;
-}
+      if (!snap.exists()) {
+        await auth.signOut();
+        router.push("/login");
+        return;
+      }
 
-if (snap.data().role !== "admin") {
-  router.push("/");
-  return;
-}
+      if (snap.data().role !== "admin") {
+        router.push("/");
+        return;
+      }
 
-      // load users only if admin
+      /* LOAD USERS */
+
       const q = query(collection(db, "users"), orderBy("score", "desc"));
-const usersSnap = await getDocs(q);
+      const usersSnap = await getDocs(q);
 
-setUsers(
-  usersSnap.docs.map((d) => ({
-    ...d.data(),
-    id: d.id,
-    score: Number(d.data().score) || 0
-  }))
-);
+      setUsers(
+        usersSnap.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        })),
+      );
 
+      /* LOAD ASSIGNMENTS */
+
+      const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
+
+      setEvents(
+        curatorsSnap.docs.map((d) => ({
+          id: d.id,
+          title: d.data().name || "Curator",
+          date: d.id,
+          backgroundColor: "#fab31e",
+          borderColor: "#fab31e",
+          textColor: "black",
+        })),
+      );
     });
 
     return () => unsub();
   }, []);
 
-const assign = async () => {
+  /* ---------------- DATE CLICK ---------------- */
 
-  if (!selected) {
-    alert("Select user")
-    return
-  }
+  const handleDateClick = (info: any) => {
+    setSelectedDate(info.dateStr);
+  };
 
-  try {
+  /* ---------------- ASSIGN CURATOR ---------------- */
 
-    const date = new Date().toISOString().split("T")[0]
+  const assignCurator = async (userId: string) => {
+    const user = users.find((u) => u.id === userId);
 
-    await setDoc(doc(db, "dailyCurator", date), {
-      curatorId: selected,
-    })
+    if (!user || !selectedDate) return;
 
-    const user = users.find((u) => u.id === selected)
-
-    await fetch("/api/send-curator-email", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: user.email,
+    try {
+      await setDoc(doc(db, "dailyCurator", selectedDate), {
+        curatorId: user.id,
         name: user.name,
-      }),
-    })
+        email: user.email,
+      });
 
-    alert("✅ Task assigned & email sent")
+      await fetch("/api/send-curator-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          date: selectedDate,
+        }),
+      });
 
-  } catch (err) {
+      setEvents((prev) => {
+        const filtered = prev.filter((e) => e.date !== selectedDate);
 
-    console.error(err)
-    alert("❌ Failed to assign curator")
+        return [
+          ...filtered,
+          {
+            id: selectedDate,
+            title: user.name,
+            date: selectedDate,
+            backgroundColor: "#fab31e",
+            borderColor: "#fab31e",
+            textColor: "black",
+          },
+        ];
+      });
 
-  }
-}
+      setSelectedDate("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed");
+    }
+  };
+  /* ---------------- DELETE USER ---------------- */
 
-  
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete user?")) return;
 
-  return (
-    <div className="container min-h-[calc(100vh-160px)] lg:pt-40 pt-30 lg:py-20 md:py-15 py-10">
-      <h1 className="text-2xl mb-6 font-semibold">Assign Curator</h1>
+    await fetch("/api/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ uid: id }),
+    });
 
-      <div className="flex gap-4 mb-10">
-        <select
-          onChange={(e) => setSelected(e.target.value)}
-          className="border px-4 py-2 rounded"
-        >
-          <option value="">Select user</option>
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  };
 
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name}
-            </option>
-          ))}
-        </select>
+  const removeAssignment = async (eventInfo: any) => {
+    const date = eventInfo.event.startStr;
+
+    if (!confirm(`Remove curator from ${date}?`)) return;
+
+    try {
+      await deleteDoc(doc(db, "dailyCurator", date));
+
+      setEvents((prev) => prev.filter((e) => e.date !== date));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to remove");
+    }
+  };
+  /* ---------------- UI ---------------- */
+  const renderEventContent = (eventInfo: any) => {
+    return (
+      <div className="flex justify-between items-center px-1">
+        <span className="truncate text-sm font-medium capitalize">
+          {eventInfo.event.title}
+        </span>
 
         <button
-          onClick={assign}
-          className="bg-yellow-400 px-6 py-2 rounded font-medium"
+          onClick={(e) => {
+            e.stopPropagation();
+            removeAssignment(eventInfo);
+          }}
+          className="ml-2 text-black cursor-pointer font-bold"
         >
-          Assign
+          ✕
         </button>
       </div>
+    );
+  };
 
-      {/* USER TABLE */}
+  return (
+    <div className=" container w-full min-h-screen p-10">
+      {/* <h1 className="text-3xl font-semibold mb-8 lg:mt-40">Curator Calendar</h1> */}
 
-      <div className="overflow-x-auto border rounded-lg shadow">
+      {/* ---------------- CALENDAR ---------------- */}
+
+      <div className="bg-white rounded-xl shadow p-6 mb-12 lg:mt-20">
+        <FullCalendar
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          height="80vh"
+          events={events}
+          dateClick={handleDateClick}
+          eventContent={renderEventContent}
+        />
+      </div>
+
+      {/* ---------------- POPUP ---------------- */}
+
+    {selectedDate && (
+
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+
+<div className="bg-white rounded-xl shadow-xl p-6 w-[520px] max-h-[80vh] overflow-y-auto">
+
+<h4 className=" font-semibold mb-4">
+  Assign Curator for {new Date(selectedDate).toLocaleDateString("en-GB")}
+</h4>
+  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+
+    {users.map((user) => (
+      <button
+        key={user.id}
+        onClick={() => assignCurator(user.id)}
+        className="border rounded-lg px-3 py-2 hover:bg-[#fab31e] transition text-sm capitalize cursor-pointer"
+      >
+        {user.name}
+      </button>
+    ))}
+
+  </div>
+
+  <Button 
+    onClick={() => setSelectedDate("")}
+    className=" mt-6 black-text"
+    text="CANCEL"
+  />
+
+
+
+</div>
+
+
+  </div>
+)}
+
+
+      {/* {selectedDate && (
+
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-lg w-[360px]">
+
+
+  <h4 className="text-lg font-semibold mb-4">Assign Curator</h4>
+
+  <p className="text-sm mb-4">
+    Date: <b>{selectedDate}</b>
+  </p>
+
+  <div className="relative mb-4">
+    <select
+      value={selectedUser}
+      onChange={(e) => setSelectedUser(e.target.value)}
+      className="border w-full p-2 rounded appearance-none"
+    >
+      <option value="">Select curator</option>
+
+      {users.map((u) => (
+        <option key={u.id} value={u.id}>
+          {u.name} ({u.score} pts)
+        </option>
+      ))}
+    </select>
+
+    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4" />
+  </div>
+
+  <div className="flex gap-3">
+
+    <button
+      onClick={assignCurator}
+      className="flex-1 bg-black text-white py-2 rounded"
+    >
+      Assign
+    </button>
+
+    <button
+      onClick={() => {
+        setSelectedDate("")
+        setSelectedUser("")
+      }}
+      className="flex-1 border py-2 rounded hover:bg-gray-100"
+    >
+      Cancel
+    </button>
+
+  </div>
+
+</div>
+
+
+  </div>
+)} */}
+
+      {/* ---------------- USER TABLE ---------------- */}
+
+      <div className="overflow-x-auto border rounded-[20px] shadow">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-100">
             <tr>
               <th className="px-6 py-3 text-left">#</th>
-
               <th className="px-6 py-3 text-left">Rank</th>
-
               <th className="px-6 py-3 text-left">Name</th>
-
               <th className="px-6 py-3 text-left">Email</th>
-
               <th className="px-6 py-3 text-left">Date Joined</th>
-
               <th className="px-6 py-3 text-left">Role</th>
-
               <th className="px-6 py-3 text-left">Score</th>
-
+              {/* <th className="px-6 py-3 text-left">Curator Assign</th> */}
               <th className="px-6 py-3 text-right">Delete</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-gray-100">
-           {users.map((user, index) => {
-                let joinedDate = "—";
+            {users.map((user, index) => {
+              let joinedDate = "—";
 
-                if (user.createdAt) {
-                  if (typeof user.createdAt === "string") {
-                    joinedDate = new Date(user.createdAt).toLocaleDateString(
-                      "en-GB",
-                    );
-                  } else if ("seconds" in user.createdAt) {
-                    joinedDate = new Date(
-                      user.createdAt.seconds * 1000,
-                    ).toLocaleDateString("en-GB");
-                  }
-                }
-
-                const handleRoleChange = async (id: string, role: string) => {
-                  await setDoc(doc(db, "users", id), { role }, { merge: true });
-
-                  setUsers((prev) =>
-                    prev.map((u) => (u.id === id ? { ...u, role } : u)),
+              if (user.createdAt) {
+                if (typeof user.createdAt === "string") {
+                  joinedDate = new Date(user.createdAt).toLocaleDateString(
+                    "en-GB",
                   );
-                };
+                } else if ("seconds" in user.createdAt) {
+                  joinedDate = new Date(
+                    user.createdAt.seconds * 1000,
+                  ).toLocaleDateString("en-GB");
+                }
+              }
 
-                const handleDelete = async (id: string) => {
-  if (!confirm("Delete this user?")) return;
+              const handleRoleChange = async (id: string, role: string) => {
+                await setDoc(doc(db, "users", id), { role }, { merge: true });
 
-  try {
-    const res = await fetch("/api/delete-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ uid: id }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      alert(data.error || "Delete failed");
-      return;
-    }
-
-    setUsers((prev) => prev.filter((u) => u.id !== id));
-
-  } catch (err) {
-    console.error("DELETE USER ERROR:", err);
-    alert("Server error deleting user");
-  }
-};
-
-                return (
-                  <tr key={user.id}>
-                    <td className="px-6 py-3">{index + 1}</td>
-
-                    <td className="px-6 py-3 font-semibold">#{index + 1}</td>
-
-                    <td className="px-6 py-3 capitalize">{user.name || "—"}</td>
-
-                    <td className="px-6 py-3">{user.email}</td>
-
-                    <td className="px-6 py-3">{joinedDate}</td>
-
-                    <td className="px-6 py-3">
-                      <select
-                        value={user.role}
-                        onChange={(e) =>
-                          handleRoleChange(user.id, e.target.value)
-                        }
-                        className="border rounded px-2 py-1 capitalize"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-
-                    <td className="px-6 py-3 font-semibold">
-                      {user.score || 0}
-                    </td>
-
-                    <td className="px-6 py-3 text-right">
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="text-red-600 hover:underline"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                setUsers((prev) =>
+                  prev.map((u) => (u.id === id ? { ...u, role } : u)),
                 );
-              })}
+              };
+
+              const handleDelete = async (id: string) => {
+                if (!confirm("Delete this user?")) return;
+
+                try {
+                  const res = await fetch("/api/delete-user", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ uid: id }),
+                  });
+
+                  const data = await res.json();
+
+                  if (!res.ok) {
+                    alert(data.error || "Delete failed");
+                    return;
+                  }
+
+                  setUsers((prev) => prev.filter((u) => u.id !== id));
+                } catch (err) {
+                  console.error("DELETE USER ERROR:", err);
+                  alert("Server error deleting user");
+                }
+              };
+
+              return (
+                <tr key={user.id}>
+                  <td className="px-6 py-3">{index + 1}</td>
+                  <td className="px-6 py-3 font-semibold">#{index + 1}</td>
+                  <td className="px-6 py-3 capitalize">{user.name || "—"}</td>
+                  <td className="px-6 py-3">{user.email}</td>
+                  <td className="px-6 py-3">{joinedDate}</td>
+
+                  <td className="px-6 py-3">
+                    <select
+                      value={user.role}
+                      onChange={(e) =>
+                        handleRoleChange(user.id, e.target.value)
+                      }
+                      className="border rounded px-2 py-1 capitalize"
+                    >
+                      <option value="user">User</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+
+                  <td className="px-6 py-3 font-semibold">{user.score || 0}</td>
+                  {/* 
+                  <td className="px-6 py-3">
+  {(() => {
+    const status = getStatus(user.id);
+    return <span className={status.className}>{status.label}</span>;
+  })()}
+</td> */}
+
+                  <td className="px-6 py-3 text-right">
+                    <button
+                      onClick={() => handleDelete(user.id)}
+                      className="text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

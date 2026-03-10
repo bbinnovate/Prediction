@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
 
-  const { email, name } = await req.json()
+  const { email, name , assignDate} = await req.json()
 
   try {
 
@@ -18,25 +18,27 @@ export async function POST(req: Request) {
         email_subject: "Your turn to add a question 🎯",
 
         email_body: `
-        <h2>Hey ${name}</h2>
+<h2>Hey ${name}</h2>
 
-        <p>Today is your turn to add a question.</p>
+<p>You have been assigned as the curator for <b>${assignDate}</b>.</p>
 
-        <p>Please click the button below to open the curator page.</p>
+<p>Please add your question before:</p>
 
-        <a href="https://prediction-pearl-chi.vercel.app/curator"
-           style="
-             display:inline-block;
-             padding:12px 24px;
-             background:#facc15;
-             color:black;
-             text-decoration:none;
-             border-radius:6px;
-             font-weight:600;
-           ">
-           Go To Curator Page
-        </a>
-        `,
+<h3>6:00 PM on the previous day</h3>
+
+<a href="https://prediction-pearl-chi.vercel.app/curator"
+style="
+display:inline-block;
+padding:12px 24px;
+background:#facc15;
+color:black;
+text-decoration:none;
+border-radius:6px;
+font-weight:600;
+">
+Go To Curator Page
+</a>
+`,
 
         include_email_tokens: [email],
       }),
