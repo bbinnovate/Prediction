@@ -125,7 +125,10 @@ export default function LandingPage() {
     return () => clearTimeout(stopTimer);
   }, [finished]);
 
-  const submitVotes = async (uid: any) => {
+const submitVotes = async (uid: any) => {
+
+  try {
+
     for (const qid of Object.keys(answers)) {
       await addDoc(collection(db, "votes"), {
         userId: uid,
@@ -143,12 +146,17 @@ export default function LandingPage() {
       }
     });
 
-    if (Object.keys(correctAnswers).length === 5) {
+    if (Object.keys(correctAnswers).length === questions.length) {
       await updateLeaderboard(correctAnswers, uid);
     }
 
     setFinished(true);
-  };
+
+  } catch (err) {
+    console.error("Vote error:", err);
+    alert("Failed to submit votes");
+  }
+};
 
   const saveVotes = async () => {
     const user = auth.currentUser;
@@ -178,12 +186,21 @@ const verifyPin = async () => {
 
   const uid = snap.data().uid;
 
+  // close popup
   setShowPinPopup(false);
 
-  if (pendingSubmit) {
-    await submitVotes(uid);
-  }
+  // reset pin input
+  setPin("");
 
+  if (pendingSubmit) {
+    setPendingSubmit(false);
+
+    // run submit
+    await submitVotes(uid);
+
+    // force UI update
+    setFinished(true);
+  }
 };
 
   const selectAnswer = (qid: any, value: any) => {
@@ -368,12 +385,16 @@ const verifyPin = async () => {
                       Verify
                     </button>
 
-                    <button
-                      onClick={() => setShowPinPopup(false)}
-                      className="mt-2 w-full border py-2 rounded"
-                    >
-                      Cancel
-                    </button>
+                   <button
+  onClick={() => {
+    setShowPinPopup(false);
+    setPin("");
+    setPendingSubmit(false);
+  }}
+  className="mt-2 w-full border py-2 rounded"
+>
+  Cancel
+</button>
                   </div>
                 </div>
               )}
