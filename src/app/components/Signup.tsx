@@ -153,13 +153,13 @@ window.dispatchEvent(new Event("pin-login"));
 }
 
   return (
-    <div className=" container lg:py-20 md:py-15 py-10 flex items-center justify-center min-h-screen">
-      <div className="flex items-center justify-center">
+    <div className=" lg:py-20 md:py-15 py-10 flex items-center justify-center min-h-screen">
+      <div className="flex container items-center justify-center">
         <form
           onSubmit={handleSignup}
-          className="relative container bg-black p-10 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]"
+          className="relative  bg-black lg:p-10 p-6 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]"
         >
-            <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
+             <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
 
           <h2 className="text-xl font-semibold text-white text-center">
             Signup
