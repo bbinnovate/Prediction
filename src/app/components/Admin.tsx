@@ -21,6 +21,8 @@ export default function Admin() {
   const [events, setEvents] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
+  const [assignSuccess, setAssignSuccess] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
 
   /* ---------------- AUTH + LOAD USERS ---------------- */
@@ -102,22 +104,15 @@ useEffect(() => {
     if (!user || !selectedDate) return;
 
     try {
+      setAssigning(true);
+      // Immediately save to firestore
       await setDoc(doc(db, "dailyCurator", selectedDate), {
         curatorId: user.id,
         name: user.name,
         email: user.email,
       });
 
-      await fetch("/api/send-curator-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          name: user.name,
-           assignDate: selectedDate,
-        }),
-      });
-
+      // Update UI immediately
       setEvents((prev) => {
         const filtered = prev.filter((e) => e.date !== selectedDate);
 
@@ -134,10 +129,30 @@ useEffect(() => {
         ];
       });
 
-      setSelectedDate("");
+      // Show success message
+      setAssignSuccess(true);
+      
+      // Send email in the background so it doesn't lag the UI
+      fetch("/api/send-curator-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+           assignDate: selectedDate,
+        }),
+      }).catch(err => console.error("Email send failed (silent):", err));
+
+      setTimeout(() => {
+        setAssignSuccess(false);
+        setAssigning(false);
+        setSelectedDate("");
+      }, 1500);
+
     } catch (err) {
       console.error(err);
       alert("Failed");
+      setAssigning(false);
     }
   };
   /* ---------------- DELETE USER ---------------- */
@@ -205,52 +220,73 @@ const removeAssignment = async (eventInfo: any) => {
       {/* ---------------- CALENDAR ---------------- */}
 
       <div className="bg-white rounded-xl shadow p-6 mb-12 lg:mt-20 mt-20">
-        <FullCalendar
-          plugins={[dayGridPlugin, interactionPlugin]}
-          initialView="dayGridMonth"
-          height="80vh"
-          events={events}
-          dateClick={handleDateClick}
-          eventContent={renderEventContent}
-        />
+       <FullCalendar
+  plugins={[dayGridPlugin, interactionPlugin]}
+  initialView="dayGridMonth"
+
+  weekends={false}            // 🔥 hides Saturday & Sunday
+  height="auto"               // 🔥 better for mobile
+
+  events={events}
+  dateClick={handleDateClick}
+  eventContent={renderEventContent}
+
+  dayMaxEventRows={2}         // 🔥 prevents overflow on mobile
+  expandRows={true}           // 🔥 better spacing on small screens
+/>
       </div>
 
       {/* ---------------- POPUP ---------------- */}
 
     {selectedDate && (
+  <div 
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    onClick={(e) => {
+      if (e.target === e.currentTarget && !assigning) setSelectedDate("");
+    }}
+  >
 
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+<div className="bg-white rounded-xl shadow-xl p-6 w-[600px] max-h-[80vh] overflow-y-auto">
 
-
-<div className="bg-white rounded-xl shadow-xl p-6 w-[520px] max-h-[80vh] overflow-y-auto">
-
-<h4 className=" font-semibold mb-4">
-  Assign Curator for {new Date(selectedDate).toLocaleDateString("en-GB")}
-</h4>
-  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-
-    {users.map((user) => (
-      <button
-        key={user.id}
-        onClick={() => assignCurator(user.id)}
-        className="border rounded-lg px-3 py-2 hover:bg-[#fab31e] transition text-sm capitalize cursor-pointer"
-      >
-        {user.name}
-      </button>
-    ))}
-
+{assignSuccess ? (
+  <div className="flex flex-col items-center justify-center py-10">
+   <div className="w-16 h-16 bg-[#fab31e] text-black rounded-full flex items-center justify-center mb-4">
+  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+  </svg>
+</div>
+    <h4 className="font-semibold text-xl">Curator Assigned!</h4>
   </div>
+) : (
+  <>
+    <h4 className=" font-semibold mb-4">
+      Assign Curator for {new Date(selectedDate).toLocaleDateString("en-GB")}
+    </h4>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 
-  <Button 
-    onClick={() => setSelectedDate("")}
-    className=" mt-6 black-text"
-    text="CANCEL"
-  />
+        {users.map((user) => (
+          <button
+            key={user.id}
+            onClick={() => assignCurator(user.id)}
+            disabled={assigning}
+            className="border rounded-lg px-3 py-2 hover:bg-[#fab31e] disabled:opacity-50 transition text-sm capitalize cursor-pointer"
+          >
+            {user.name}
+          </button>
+        ))}
 
+      </div>
 
+      <Button 
+        onClick={() => setSelectedDate("")}
+        disabled={assigning}
+        className=" mt-6 black-text"
+        text="CANCEL"
+      />
+  </>
+)}
 
 </div>
-
 
   </div>
 )}

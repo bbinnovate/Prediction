@@ -56,8 +56,12 @@ export default function LandingPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<any>({});
   const [finished, setFinished] = useState(false);
+  
+  // Progress calculations
   const totalSteps = questions?.length || 0;
-  const progressPercentage = Math.round((step / (totalSteps - 1)) * 100);
+  
+  // They want the percentage text to hit 100% on the last question (step === totalSteps - 1). 
+  const progressPercentage = totalSteps > 1 ? Math.round((step / (totalSteps - 1)) * 100) : 0;
   const [role, setRole] = useState<string | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
   const [showPinPopup, setShowPinPopup] = useState(false);
@@ -67,6 +71,47 @@ export default function LandingPage() {
   const [todayCurator, setTodayCurator] = useState<any>(null);
   const [checkingVote, setCheckingVote] = useState(true);
   const [timeExpired, setTimeExpired] = useState(false);
+  const [notStarted, setNotStarted] = useState(false);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [globalTimeLeft, setGlobalTimeLeft] = useState("");
+
+useEffect(() => {
+  const calculateTimeLeft = () => {
+    const now = new Date();
+    
+    const start = new Date();
+    start.setHours(6, 0, 0, 0);
+
+    const end = new Date();
+    end.setHours(10, 30, 0, 0);
+
+    // Only show active timer between 6 AM and 10:30 AM
+    if (now < start || now >= end) {
+      return "00:00:00";
+    }
+
+    const diff = end.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      return "00:00:00";
+    }
+
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / 1000 / 60) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
+
+  setGlobalTimeLeft(calculateTimeLeft());
+
+  const timer = setInterval(() => {
+    setGlobalTimeLeft(calculateTimeLeft());
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, []);
 
 useEffect(() => {
   if (checkingRole || checkingVote || finished) return;
@@ -172,23 +217,52 @@ useEffect(() => {
   loadCurator();
 }, []);
 
+// Quiz timer effect
 useEffect(() => {
+  if (!quizStarted || finished || step >= totalSteps) return;
 
+  const currentQid = questions[step]?.id;
+  
+  // IF on the last question: Wait until 2 seconds, OR stop immediately if they answered
+  if (step === totalSteps - 1) {
+    if (timeLeft <= 2) return; 
+    if (answers[currentQid]) return; 
+  }
+
+  if (timeLeft === 0) {
+    // time is up for this question, move to next and record empty answer
+    const qid = questions[step].id;
+    setAnswers((prev: any) => ({
+      ...prev,
+      [qid]: "", // Explicit empty answer when skipped
+    }));
+    handleAutoAdvance();
+    return;
+  }
+
+  const timer = setInterval(() => {
+    setTimeLeft((prev) => Math.max(0, prev - 1));
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
+
+// Time window check
+useEffect(() => {
   const now = new Date();
   const hour = now.getHours();
   const minute = now.getMinutes();
 
-  // before 6 AM → not started
+  // 12 AM → 6 AM
   if (hour < 6) {
-    setTimeExpired(true);
+    setNotStarted(true);
     return;
   }
 
-  // after 10:30 AM → expired
+  // 10:30 AM → 12 AM
   if (hour > 10 || (hour === 10 && minute > 30)) {
     setTimeExpired(true);
   }
-
 }, []);
 
   const hasVotedToday = async (uid: unknown) => {
@@ -348,26 +422,44 @@ if (alreadyVoted) {
       [qid]: value,
     }));
 
-    // move automatically to next question
+    handleAutoAdvance();
+  };
+
+  const handleAutoAdvance = () => {
     if (step < totalSteps - 1) {
-      setStep(step + 1);
+      setStep((prev) => prev + 1);
+      setTimeLeft(10); // reset timer
     }
+    // we don't automatically submit here anymore as requested, user clicks Submit manually on last question
   };
 
-  const nextQuestion = () => {
-    if (!answers[current.id]) {
-      alert("Please select Yes or No");
-      return;
-    }
-
-    setStep(step + 1);
+  const startQuiz = () => {
+    setQuizStarted(true);
+    setTimeLeft(10);
   };
 
-  const goBack = () => {
-    if (step > 0) {
-      setStep(step - 1);
-    }
-  };
+
+  if (notStarted) {
+  return (
+
+<section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+  <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+
+    <h2 className="text-4xl text-yellow-400 mb-4">
+      Voting starts at 6:00 AM ⏰
+    </h2>
+
+    <p className="text-gray-300 text-lg">
+      Come back later!
+    </p>
+
+    <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+
+  </div>
+</section>
+
+  );
+}
 
   if (checkingRole) {
     return (
@@ -478,100 +570,136 @@ if (alreadyVoted) {
     >
       <div className="bg-[#1D1D1D] rounded-[20px] relative overflow-hidden px-6 py-8">
         <div className="max-w-3xl mx-auto text-center mb-6">
-          <h2 className="text-3xl font-medium text-white">
-  Office <span className="text-highlight">Predictions</span>
-</h2>
+          {quizStarted && (
+            <>
+              <h2 className="text-3xl font-medium text-white">
+                Office <span className="text-highlight">Predictions</span>
+              </h2>
 
-{todayCurator && (
-  <p className="text-gray-400 text-sm mt-2">
-    Curated by <span className="text-highlight font-semibold capitalize">
-      {todayCurator.name}
-    </span>{" "}
-    for{" "}
-   {new Date(todayCurator.date).toLocaleDateString("en-GB", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-})}
-  </p>
-)}
+              {todayCurator && (
+                <p className="text-gray-400 text-sm mt-2">
+                  Curated by <span className="text-highlight font-semibold capitalize">
+                    {todayCurator.name}
+                  </span>{" "}
+                  for{" "}
+                 {new Date(todayCurator.date).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })}
+                </p>
+              )}
+            </>
+          )}
 
           <div className="mt-6">
-            <div className="flex gap-3 items-center">
-              {Array.from({ length: totalSteps }).map((_, idx) => {
-                const filled = idx <= step;
+            {quizStarted && (
+              <>
+                <div className="flex gap-3 items-center">
+                  {Array.from({ length: totalSteps }).map((_, idx) => {
+                    // idx <= step so that the current active question is also marked as "filled/filling"
+                    // (e.g. on question 1 (idx=0, step=0), the 1st bar is yellow). 
+                    // On question 4 (idx=3, step=3), all 4 bars are yellow.
+                    const filled = idx <= step; 
 
-                return (
-                  <div
-                    key={idx}
-                    className={`flex-1 h-2 rounded-full ${
-                      filled ? "bg-[#fab31e]" : "border border-gray-600"
-                    }`}
-                  />
-                );
-              })}
-            </div>
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex-1 h-2 rounded-full ${
+                          filled ? "bg-[#fab31e]" : "border border-gray-600"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
 
-            <div className="mt-3 text-sm text-gray-300 flex justify-between">
-              <div>
-                Step {step + 1} of {totalSteps}
-              </div>
+                <div className="mt-3 text-sm text-gray-300 flex justify-between">
+                  <div>
+                    Step {step + 1} of {totalSteps}
+                  </div>
 
-              <div className="text-highlight">{progressPercentage}%</div>
-            </div>
+                  <div className="text-highlight">{progressPercentage}%</div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         <div className="max-w-3xl mx-auto">
-          <div className="py-10">
-            {step > 0 && (
-              <button
-                onClick={goBack}
-                className="text-gray-300 underline mb-6 cursor-pointer"
-              >
-                ← Previous Question
-              </button>
+          <div className="py-5">
+            {!quizStarted ? (
+              <div className="flex flex-col items-center justify-center ">
+                <h3 className="text-xl text-white">Ready to start the predictions?</h3>
+                
+                <div className="my-6 text-center">
+                  <p className="text-[#fab31e] font-bold text-5xl mb-2">{globalTimeLeft}</p>
+                  {/* <p className="text-gray-300 text-lg">Time is going, answer the questions fast!</p> */}
+                </div>
+
+                <p className="text-gray-400 ">You will have 10 seconds per question.</p>
+                <Button 
+                  text="Start Prediction" 
+                  onClick={startQuiz}  
+                  className="white-text mt-4"
+                />
+              </div>
+            ) : (
+              // Quiz content
+              <>
+                {step < totalSteps && current && (
+                  <>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl text-white">{current.question}</h3>
+                      <div className={`text-lg font-bold px-3 py-1 rounded-full ${timeLeft <= 3 ? 'text-red-500 bg-red-500/10' : 'text-highlight bg-highlight/10'}`}>
+                        00:{timeLeft.toString().padStart(2, '0')}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-6">
+                      <button
+                        onClick={() => selectAnswer(current.id, "yes")}
+                        className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+                          answers[current.id] === "yes"
+                            ? "bg-[#fab31e] text-black"
+                            : "text-white hover:bg-[#fab31e] hover:text-black"
+                        }`}
+                      >
+                        Yes
+                      </button>
+
+                      <button
+                        onClick={() => selectAnswer(current.id, "no")}
+                        className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+                          answers[current.id] === "no"
+                            ? "bg-[#fab31e] text-black"
+                            : "text-white hover:bg-[#fab31e] hover:text-black"
+                        }`}
+                      >
+                        No
+                      </button>
+
+                      {step === totalSteps - 1 && (
+                        <div className="w-full md:w-auto md:ml-auto">
+                          <Button
+                            onClick={() => {
+                              // Bump step to virtually fill the bar to 100% just before saving
+                              setStep(totalSteps);
+                              saveVotes();
+                            }}
+                            text={pendingSubmit ? "Submitting..." : "Submit"}
+                            className="text-white w-full md:w-auto"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </>
             )}
 
-            <h3 className="text-xl text-white mb-10">{current.question}</h3>
-
-          <div className="flex flex-wrap items-center gap-6">
-
-  <button
-    onClick={() => selectAnswer(current.id, "yes")}
-    className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-      answers[current.id] === "yes"
-        ? "bg-[#fab31e] text-black"
-        : "text-white hover:bg-[#fab31e] hover:text-black"
-    }`}
-  >
-    Yes
-  </button>
-
-  <button
-    onClick={() => selectAnswer(current.id, "no")}
-    className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-      answers[current.id] === "no"
-        ? "bg-[#fab31e] text-black"
-        : "text-white hover:bg-[#fab31e] hover:text-black"
-    }`}
-  >
-    No
-  </button>
-
-  {step === totalSteps - 1 && (
-    <div className="w-full md:w-auto md:ml-auto">
-      <Button
-        onClick={saveVotes}
-        text="Submit"
-        className="text-white w-full md:w-auto"
-      />
-    </div>
-  )}
-
-</div>
-
- {showPinPopup && (
+            {/* We no longer use step === totalSteps so the above submit works directly on the last step */}
+            
+            {showPinPopup && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                   <div className="bg-white p-6 rounded-xl w-[300px]">
                     <h4 className=" font-semibold mb-4">
