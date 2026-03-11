@@ -25,20 +25,35 @@ export default function Curator() {
   const [answered, setAnswered] = useState(false);
   const router = useRouter();
   const [assignedDate, setAssignedDate] = useState("");
+  const [sessionUid, setSessionUid] = useState("");
 
 const now = new Date();
-const today = new Date().toISOString().split("T")[0];
+const year = now.getFullYear();
+const month = String(now.getMonth() + 1).padStart(2, "0");
+const day = String(now.getDate()).padStart(2, "0");
+const today = `${year}-${month}-${day}`;
 const currentMinutes = now.getHours() * 60 + now.getMinutes();
   // LOAD PAGE + PERMISSION CHECK
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        router.push("/login");
-        return;
+      let uid = user?.uid;
+
+      if (!uid) {
+        const pinUser = localStorage.getItem("pinUser");
+        if (pinUser) {
+          uid = JSON.parse(pinUser).uid;
+        }
+
+        if (!uid) {
+          router.push("/login");
+          return;
+        }
       }
 
+      setSessionUid(uid);
+
       // check if this user is today's curator
-const userSnap = await getDoc(doc(db, "users", user.uid));
+const userSnap = await getDoc(doc(db, "users", uid));
 
 if (!userSnap.exists()) {
   router.push("/");
@@ -62,9 +77,12 @@ if (currentMinutes < sixPM) {
 
 // after 6 PM → tomorrow's curator
 if (currentMinutes >= sixPM) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  activeDate = tomorrow.toISOString().split("T")[0];
+  const t = new Date();
+  t.setDate(t.getDate() + 1);
+  const ty = t.getFullYear();
+  const tm = String(t.getMonth() + 1).padStart(2, "0");
+  const td = String(t.getDate()).padStart(2, "0");
+  activeDate = `${ty}-${tm}-${td}`;
 }
 
 // admin always allowed
@@ -81,7 +99,7 @@ if (role === "admin") {
     if (curatorSnap.exists()) {
       const data = curatorSnap.data();
 
-      if (data.curatorId === user.uid) {
+      if (data.curatorId === uid) {
         allowedDate = activeDate;
       }
     }
@@ -102,7 +120,7 @@ setAssignedDate(finalDate);
 const q = query(
   collection(db, "questions"),
   where("date", "==", finalDate),
-  where("curatorId", "==", user.uid),
+  where("curatorId", "==", uid),
   limit(4)
 );
 
@@ -155,7 +173,7 @@ if (allAnswered) {
         question: q,
         correctAnswer: null,
         date: assignedDate,
-        curatorId: auth.currentUser?.uid,
+        curatorId: sessionUid,
         createdAt: serverTimestamp(),
       });
 
@@ -191,7 +209,7 @@ const saveAnswers = async () => {
 
     await updateDoc(doc(db, "questions", q.id), {
       correctAnswer: ans,
-      answeredBy: auth.currentUser?.uid
+      answeredBy: sessionUid
     });
 
     updated.push({ ...q, correctAnswer: ans });

@@ -11,6 +11,7 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { deleteDoc } from "firebase/firestore";
+import { Eye, EyeOff } from "lucide-react";
 import Button from "./Button";
 
 export default function Admin() {
@@ -203,7 +204,7 @@ const removeAssignment = async (eventInfo: any) => {
 
       {/* ---------------- CALENDAR ---------------- */}
 
-      <div className="bg-white rounded-xl shadow p-6 mb-12 lg:mt-20">
+      <div className="bg-white rounded-xl shadow p-6 mb-12 lg:mt-20 mt-20">
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
@@ -325,6 +326,7 @@ const removeAssignment = async (eventInfo: any) => {
               <th className="px-6 py-3 text-left">Date Joined</th>
               <th className="px-6 py-3 text-left">Role</th>
               <th className="px-6 py-3 text-left">Score</th>
+              <th className="px-6 py-3 text-left">PIN</th>
               {/* <th className="px-6 py-3 text-left">Curator Assign</th> */}
               <th className="px-6 py-3 text-right">Delete</th>
             </tr>
@@ -402,6 +404,11 @@ const removeAssignment = async (eventInfo: any) => {
                   </td>
 
                   <td className="px-6 py-3 font-semibold">{user.score || 0}</td>
+                  <td className="px-6 py-3">
+                    <UserPinDisplay pin={user.pin} />
+                  </td>
+                  
+                  
                   {/* 
                   <td className="px-6 py-3">
   {(() => {
@@ -424,6 +431,48 @@ const removeAssignment = async (eventInfo: any) => {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function UserPinDisplay({ pin }: { pin?: string }) {
+  const [show, setShow] = useState(false);
+
+  if (!pin) return <span className="text-gray-400 italic">Not set</span>;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="font-mono tracking-widest text-lg w-12">
+        {show ? pin : "••••"}
+      </span>
+      <button
+        onClick={() => setShow(!show)}
+        className="text-gray-500 hover:text-black transition p-1 cursor-pointer"
+        title={show ? "Hide PIN" : "Show PIN"}
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
+
+function UserPin({ pin }: { pin?: string }) {
+  const [show, setShow] = useState(false);
+
+  if (!pin) return <span className="text-gray-400 italic">Not set</span>;
+
+  return (
+    <div className="flex items-center gap-2">
+      <span className="font-mono tracking-widest text-lg w-12">
+        {show ? pin : "••••"}
+      </span>
+      <button
+        onClick={() => setShow(!show)}
+        className="text-gray-500 hover:text-black transition p-1 cursor-pointer"
+        title={show ? "Hide PIN" : "Show PIN"}
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
     </div>
   );
 }

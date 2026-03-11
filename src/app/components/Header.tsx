@@ -18,19 +18,60 @@ export default function DesktopNav() {
   const [isCurator, setIsCurator] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   const today = new Date().toISOString().split("T")[0];
 
   
 useEffect(() => {
 
-  const loadPinUser = () => {
+  const checkCurator = async (uid: string) => {
+    // get LOCAL today string
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const today = `${year}-${month}-${day}`;
+
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const sixPM = 18 * 60;
+    let activeDate: string | null = null;
+
+    if (currentMinutes < sixPM) {
+      activeDate = today;
+    }
+
+    if (currentMinutes >= sixPM) {
+      const t = new Date();
+      t.setDate(t.getDate() + 1);
+      const ty = t.getFullYear();
+      const tm = String(t.getMonth() + 1).padStart(2, "0");
+      const td = String(t.getDate()).padStart(2, "0");
+      activeDate = `${ty}-${tm}-${td}`;
+    }
+
+    if (!activeDate) {
+      setIsCurator(false);
+    } else {
+      const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
+      if (curatorSnap.exists() && curatorSnap.data().curatorId === uid) {
+        setIsCurator(true);
+      } else {
+        setIsCurator(false);
+      }
+    }
+  };
+
+  const loadPinUser = async () => {
     const pinUser = localStorage.getItem("pinUser");
 
     if (pinUser) {
       const parsed = JSON.parse(pinUser);
-
       setUser({ uid: parsed.uid });
       setRole(parsed.role || "user");
+      await checkCurator(parsed.uid);
     }
   };
 
@@ -40,7 +81,6 @@ useEffect(() => {
   window.addEventListener("pin-login", loadPinUser);
 
   const unsub = auth.onAuthStateChanged(async (u) => {
-
     if (!u) {
       loadPinUser();
       return;
@@ -49,48 +89,10 @@ useEffect(() => {
     const userSnap = await getDoc(doc(db, "users", u.uid));
 
     if (userSnap.exists()) {
-
       setUser(u);
       setRole(userSnap.data().role || "");
-
-      const today = new Date().toISOString().split("T")[0];
-
-const now = new Date();
-const currentMinutes = now.getHours() * 60 + now.getMinutes();
-
-const sixPM = 18 * 60;
-
-let activeDate: string | null = null;
-
-// before 6PM → today's curator
-if (currentMinutes < sixPM) {
-  activeDate = today;
-}
-
-// after 6PM → tomorrow's curator
-if (currentMinutes >= sixPM) {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  activeDate = tomorrow.toISOString().split("T")[0];
-}
-
-if (!activeDate) {
-  setIsCurator(false);
-} else {
-
-  const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
-
-  if (curatorSnap.exists() && curatorSnap.data().curatorId === u.uid) {
-    setIsCurator(true);
-  } else {
-    setIsCurator(false);
-  }
-
-}
-
-
+      await checkCurator(u.uid);
     }
-
   });
 
   return () => {
@@ -241,6 +243,7 @@ const logout = async () => {
                   href="/login"
                   text="Login / Signup"
                   className="text-black"
+                  onClick={() => setMenuOpen(false)}
                 />
               )}
             </div>
