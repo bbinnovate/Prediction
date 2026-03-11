@@ -7,6 +7,7 @@ import { doc, setDoc ,serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 import { setCookie } from "cookies-next";
 import Button from "../components/Button";
+import { Eye, EyeOff } from "lucide-react"
 import {
   collection,
   getDocs,
@@ -27,6 +28,7 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
+   const [showPin, setShowPin] = useState(false)
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -178,6 +180,7 @@ window.dispatchEvent(new Event("pin-login"));
 
           {nameError && <p className="text-red-500 text-xs">{nameError}</p>}
 
+         
           <input
             type="text"
             value={email}
@@ -189,16 +192,23 @@ window.dispatchEvent(new Event("pin-login"));
 
           {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
 
-          <input
-  type="text"
-  value={pin}
-  onChange={(e) => handlePinChange(e.target.value)}
-  placeholder="4 Digit Login PIN"
-  required
-  maxLength={4}
-  className="w-full border p-2 rounded text-white bg-black"
-/>
-
+         <div className="relative">
+    <input
+     type={showPin ? "text" : "password"}
+     value={pin}
+     onChange={(e)=>setPin(e.target.value)}
+     placeholder="4 Digit PIN"
+     maxLength={4}
+     className="w-full border p-2 rounded white-text bg-black tracking-widest pr-10"
+    />
+    <button
+     type="button"
+     onClick={() => setShowPin(!showPin)}
+     className="absolute right-3 top-1/2 -translate-y-1/2 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
+    >
+     {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+    </button>
+   </div>
 {pinError && <p className="text-red-500 text-xs">{pinError}</p>}
 
           <Button

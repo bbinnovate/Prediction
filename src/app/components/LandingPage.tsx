@@ -176,8 +176,16 @@ useEffect(() => {
 
   const now = new Date();
   const hour = now.getHours();
+  const minute = now.getMinutes();
 
-  if (hour >= 10) {
+  // before 6 AM → not started
+  if (hour < 6) {
+    setTimeExpired(true);
+    return;
+  }
+
+  // after 10:30 AM → expired
+  if (hour > 10 || (hour === 10 && minute > 30)) {
     setTimeExpired(true);
   }
 

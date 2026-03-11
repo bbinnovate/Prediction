@@ -46,8 +46,14 @@ const Index = () => {
     </p>
 
     <p className="text-gray-300 mb-8">
-      Try to solve all the questions before <span className="text-highlight font-semibold">10:00 AM</span>.
+      Try to solve all the questions before <span className="text-highlight font-semibold">10:30 AM</span>.
     </p>
+
+   <Button
+  href="/login"
+  text="Login / Signup"
+  className="white-text md:hidden"
+/>
 
     <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
 
