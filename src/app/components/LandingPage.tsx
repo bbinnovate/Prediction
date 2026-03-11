@@ -66,6 +66,7 @@ export default function LandingPage() {
   const [alreadyVotedError, setAlreadyVotedError] = useState(false);
   const [todayCurator, setTodayCurator] = useState<any>(null);
   const [checkingVote, setCheckingVote] = useState(true);
+  const [timeExpired, setTimeExpired] = useState(false);
 
 useEffect(() => {
   if (checkingRole || checkingVote || finished) return;
@@ -169,6 +170,17 @@ useEffect(() => {
   };
 
   loadCurator();
+}, []);
+
+useEffect(() => {
+
+  const now = new Date();
+  const hour = now.getHours();
+
+  if (hour >= 10) {
+    setTimeExpired(true);
+  }
+
 }, []);
 
   const hasVotedToday = async (uid: unknown) => {
@@ -356,6 +368,30 @@ if (alreadyVoted) {
       </section>
     );
   }
+
+  if (timeExpired && !finished) {
+  return (
+
+<section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+  <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+
+    <h2 className="text-4xl text-red-400 mb-4">
+      Oops! You missed it ⏰
+    </h2>
+
+    <p className="text-gray-300 text-lg">
+      Voting closes at <b>10:00 AM</b>.
+      <br />
+      Better luck tomorrow!
+    </p>
+
+    <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+
+  </div>
+</section>
+
+  );
+}
 
   if (role === "admin") {
     return (

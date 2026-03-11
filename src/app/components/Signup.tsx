@@ -5,7 +5,6 @@ import { auth, db } from "@/lib/firebase";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc ,serverTimestamp } from "firebase/firestore";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
 import { setCookie } from "cookies-next";
 import Button from "../components/Button";
 import {
@@ -21,8 +20,6 @@ export default function Signup() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
 
   const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
@@ -49,7 +46,9 @@ if(pinDoc.exists()){
 }
 
     try {
-      const res = await createUserWithEmailAndPassword(auth, email, password);
+      // Generate a random password since user logs in via PIN
+      const generatedPassword = Math.random().toString(36).slice(-8) + "Aa1!";
+      const res = await createUserWithEmailAndPassword(auth, email, generatedPassword);
 
       const user = res.user;
 
@@ -158,9 +157,9 @@ window.dispatchEvent(new Event("pin-login"));
       <div className="flex items-center justify-center">
         <form
           onSubmit={handleSignup}
-          className="relative bg-black p-10 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]"
+          className="relative container bg-black p-10 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]"
         >
-          <div className="absolute -right-1 top-0 w-2 sm:w-2 md:w-5 h-full bg-[#FAB31E]" />
+            <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
 
           <h2 className="text-xl font-semibold text-white text-center">
             Signup
@@ -189,25 +188,6 @@ window.dispatchEvent(new Event("pin-login"));
           />
 
           {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
-
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              required
-              className="w-full border p-2 rounded text-white bg-black pr-12"
-            />
-
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
 
           <input
   type="text"

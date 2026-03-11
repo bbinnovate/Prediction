@@ -1,100 +1,69 @@
 "use client"
 
 import { useState } from "react"
-import { auth } from "@/lib/firebase"
-import { signInWithEmailAndPassword } from "firebase/auth"
+import { db } from "@/lib/firebase"
+import { doc, getDoc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
-import { Eye, EyeOff } from "lucide-react";
-import { setCookie } from "cookies-next";
-import Button from "../components/Button";
+import Button from "../components/Button"
 
 export default function Login(){
 
  const router = useRouter()
-const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
- const [email,setEmail] = useState("")
- const [password,setPassword] = useState("")
+
+ const [pin,setPin] = useState("")
+ const [error,setError] = useState("")
+ const [loading,setLoading] = useState(false)
 
  const login = async () => {
 
-  try{
-
-   await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-   )
-
-   router.push("/")
-
-  }catch(err:any){
-   alert(err.message)
+  if(pin.length !== 4){
+   setError("Enter 4 digit PIN")
+   return
   }
 
- }
-
-
-  const handleLogin = async () => {
-
-  setError("")
   setLoading(true)
+  setError("")
 
   try{
 
-   const userCred = await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-   )
+   const snap = await getDoc(doc(db,"pinLogin",pin))
 
-   const token = await userCred.user.getIdToken()
-   localStorage.setItem(
-  "pinUser",
-  JSON.stringify({
-    uid: userCred.user.uid,
-    role: "user"
-  })
-);
-
-window.dispatchEvent(new Event("pin-login"));
-
-   setCookie("firebase-auth", token, {
-    path:"/",
-    maxAge:60*60*24
-   })
-
-   router.push("/")
-
-  }
-  catch(err:any){
-
-   console.error(err)
-
-   switch(err.code){
-
-    case "auth/invalid-credential":
-     setError("Incorrect email or password")
-     break
-
-    case "auth/invalid-email":
-     setError("Invalid email format")
-     break
-
-    case "auth/user-disabled":
-     setError("Account disabled")
-     break
-
-    case "auth/too-many-requests":
-     setError("Too many attempts. Try later")
-     break
-
-    default:
-     setError("Login failed")
-
+   if(!snap.exists()){
+    setError("Incorrect PIN")
+    setLoading(false)
+    return
    }
 
+   const uid = snap.data().uid
+
+   const userSnap = await getDoc(doc(db,"users",uid))
+
+   if(!userSnap.exists()){
+    setError("User not found")
+    setLoading(false)
+    return
+   }
+
+   const user = userSnap.data()
+
+   // create session
+   localStorage.setItem(
+    "pinUser",
+    JSON.stringify({
+     uid,
+     role:user.role || "user",
+     name:user.name
+    })
+   )
+
+   window.dispatchEvent(new Event("pin-login"))
+
+   router.push("/")
+
+  }
+  catch(err){
+   console.error(err)
+   setError("Login failed")
   }
 
   finally{
@@ -104,60 +73,37 @@ window.dispatchEvent(new Event("pin-login"));
  }
 
  return(
-    
 
- <div className=" container lg:py-20 md:py-15 py-10 flex items-center justify-center min-h-screen">
+ <div className="container lg:py-20 md:py-15 py-10 flex items-center justify-center min-h-screen">
 
-  <div className="relative bg-black p-10  shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]">
+  <div className="relative bg-black p-10 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]">
 
-    {/* Right border */}
-    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
+   <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
 
-    <h2 className="text-xl font-semibold white-text text-center">Login</h2>
-    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+   <h4 className="text-xl font-semibold white-text text-center">
+    Enter Login PIN
+   </h4>
 
-    <input
-      type="email"
-      value={email}
-       onChange={(e)=>setEmail(e.target.value)}
-      placeholder="Email"
-      required
-      className="w-full border p-2 rounded white-text"
-    />
+   {error && (
+    <p className="text-red-500 text-sm text-center">{error}</p>
+   )}
 
+   <input
+    type="password"
+    value={pin}
+    onChange={(e)=>setPin(e.target.value)}
+    placeholder="4 Digit PIN"
+    maxLength={4}
+    className="w-full border p-2 rounded white-text bg-black text-center tracking-widest"
+   />
 
-   <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              value={password}
-               onChange={(e)=>setPassword(e.target.value)}
-              placeholder="Password"
-              required
-              className="w-full border p-2 rounded text-white bg-black pr-12"
-            />
+   <Button
+    onClick={login}
+    disabled={loading}
+    className="white-text"
+    text={loading ? "Logging in..." : "Login"}
+   />
 
-            <button
-  type="button"
-  onClick={() => setShowPassword(!showPassword)}
-  className="absolute right-3 top-1/2 -translate-y-1/2 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
->
-  {showPassword ? (
-    <EyeOff size={20} />
-  ) : (
-    <Eye size={20} />
-  )}
-</button>
-
-          </div>
-
-
-          <Button
-  onClick={handleLogin}
-  type="submit"
-  disabled={loading}
-  className="white-text"
-  text={loading ? "Logging in..." : "Login"}
-/>
 
    <p className="text-center text-white text-sm mt-2">
   Don’t have an account?{" "}

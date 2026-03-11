@@ -24,56 +24,68 @@ export default function Admin() {
 
   /* ---------------- AUTH + LOAD USERS ---------------- */
 
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
+useEffect(() => {
+  const unsub = auth.onAuthStateChanged(async (user) => {
+
+    let uid = user?.uid;
+
+    // if firebase user not found → check PIN session
+    if (!uid) {
+      const pinUser = localStorage.getItem("pinUser");
+
+      if (pinUser) {
+        uid = JSON.parse(pinUser).uid;
+      }
+
+      if (!uid) {
         router.push("/login");
         return;
       }
+    }
 
-      const snap = await getDoc(doc(db, "users", user.uid));
+    const snap = await getDoc(doc(db, "users", uid));
 
-      if (!snap.exists()) {
-        await auth.signOut();
-        router.push("/login");
-        return;
-      }
+    if (!snap.exists()) {
+      router.push("/login");
+      return;
+    }
 
-      if (snap.data().role !== "admin") {
-        router.push("/");
-        return;
-      }
+    if (snap.data().role !== "admin") {
+      router.push("/");
+      return;
+    }
 
-      /* LOAD USERS */
+    /* LOAD USERS */
 
-      const q = query(collection(db, "users"), orderBy("score", "desc"));
-      const usersSnap = await getDocs(q);
+    const q = query(collection(db, "users"), orderBy("score", "desc"));
+    const usersSnap = await getDocs(q);
 
-      setUsers(
-        usersSnap.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        })),
-      );
+    setUsers(
+      usersSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })),
+    );
 
-      /* LOAD ASSIGNMENTS */
+    /* LOAD ASSIGNMENTS */
 
-      const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
+    const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
 
-      setEvents(
-        curatorsSnap.docs.map((d) => ({
-          id: d.id,
-          title: d.data().name || "Curator",
-          date: d.id,
-          backgroundColor: "#fab31e",
-          borderColor: "#fab31e",
-          textColor: "black",
-        })),
-      );
-    });
+    setEvents(
+      curatorsSnap.docs.map((d) => ({
+        id: d.id,
+        title: d.data().name || "Curator",
+        date: d.id,
+        backgroundColor: "#fab31e",
+        borderColor: "#fab31e",
+        textColor: "black",
+      })),
+    );
 
-    return () => unsub();
-  }, []);
+  });
+
+  return () => unsub();
+}, []);
 
   /* ---------------- DATE CLICK ---------------- */
 

@@ -58,17 +58,17 @@ useEffect(() => {
 const now = new Date();
 const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-const noon = 12 * 60;
-const threePM = 15 * 60;
+const sixPM = 18 * 60;
 
 let activeDate: string | null = null;
 
-
-if (currentMinutes < noon) {
+// before 6PM → today's curator
+if (currentMinutes < sixPM) {
   activeDate = today;
 }
 
-if (currentMinutes >= threePM) {
+// after 6PM → tomorrow's curator
+if (currentMinutes >= sixPM) {
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   activeDate = tomorrow.toISOString().split("T")[0];
