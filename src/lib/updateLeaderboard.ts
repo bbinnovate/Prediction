@@ -7,6 +7,8 @@ import {
   increment,
   query,
   where,
+  getDoc,
+  setDoc
 } from "firebase/firestore";
 import { calculateScore } from "./calculateScore";
 
@@ -38,10 +40,22 @@ export async function updateLeaderboard(answers: any, userId?: string) {
 
     const score = calculateScore(userVotes, answers);
 
-    if (score === 0) continue;
+    const userRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userRef);
 
-    await updateDoc(doc(db, "users", uid), {
-      score: increment(score),
-    });
+    // 🔥 THIS FIXES YOUR ERROR
+    if (!userSnap.exists()) {
+
+      await setDoc(userRef, {
+        score: score
+      });
+
+    } else {
+
+      await updateDoc(userRef, {
+        score: increment(score)
+      });
+
+    }
   }
 }

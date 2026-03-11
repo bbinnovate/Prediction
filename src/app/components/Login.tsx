@@ -50,6 +50,15 @@ const [error, setError] = useState("");
    )
 
    const token = await userCred.user.getIdToken()
+   localStorage.setItem(
+  "pinUser",
+  JSON.stringify({
+    uid: userCred.user.uid,
+    role: "user"
+  })
+);
+
+window.dispatchEvent(new Event("pin-login"));
 
    setCookie("firebase-auth", token, {
     path:"/",

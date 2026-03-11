@@ -20,40 +20,109 @@ type User = {
   email?: string;
   score?: number;
   avatar?: string;
+  weekly?: string[];
 };
 export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
-    async function load() {
-      const q = query(collection(db, "users"), orderBy("score", "desc"));
-      const snap = await getDocs(q);
+   async function load() {
+  const q = query(collection(db, "users"), orderBy("score", "desc"));
+  const snap = await getDocs(q);
 
-      const data = snap.docs.map((d, i) => ({
-  id: d.id,
-  avatar: avatars[i % avatars.length],
-  ...d.data(),
-  score: Number(d.data().score) || 0,
-}));
-      setUsers(data);
-    }
+  const votesSnap = await getDocs(collection(db, "votes"));
+  const questionsSnap = await getDocs(collection(db, "questions"));
 
+  const votes = votesSnap.docs.map((d) => d.data());
+
+  const questions: any = {};
+  questionsSnap.docs.forEach((d) => {
+    questions[d.id] = d.data().correctAnswer;
+  });
+
+  const data = snap.docs.map((d, i) => {
+    const uid = d.id;
+
+    const userVotes = votes.filter((v: any) => v.userId === uid);
+    // remove duplicate answers for the same question
+const uniqueVotes: any = {};
+const filteredVotes = Object.values(uniqueVotes);
+filteredVotes.forEach((v: any) => {
+  uniqueVotes[v.questionId] = v;
+});
+
+
+  // sort votes so order is correct
+filteredVotes.sort((a: any, b: any) => {
+  const ta = a.createdAt?.seconds || new Date(a.createdAt).getTime();
+  const tb = b.createdAt?.seconds || new Date(b.createdAt).getTime();
+  return ta - tb;
+});
+
+const matches: number[] = [];
+let correctCount = 0;
+let questionCount = 0;
+
+userVotes.forEach((v: any) => {
+  const correctAnswer = questions[v.questionId];
+
+const userAns = String(v.answer).trim().toLowerCase();
+const correctAns = String(correctAnswer).trim().toLowerCase();
+
+if (userAns === correctAns) {
+  correctCount++;
+}
+
+  questionCount++;
+
+  // every 4 questions = 1 match
+  if (questionCount === 4) {
+    matches.push(correctCount);
+    correctCount = 0;
+    questionCount = 0;
+  }
+});
+
+// only keep 5 matches
+const weekly = [];
+
+for (let i = 0; i < 5; i++) {
+  weekly.push(`${matches[i] || 0}/4`);
+}
+
+    return {
+      id: d.id,
+      avatar: avatars[i % avatars.length],
+      ...d.data(),
+      score: Number(d.data().score) || 0,
+      weekly,
+    };
+  });
+
+  setUsers(data);
+}
     load();
   }, []);
 
   const top3 = users.slice(0, 3);
   const others = users.slice(3);
 
+  const today = new Date().toLocaleDateString("en-IN", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
+
   return (
     <div className="container min-h-[calc(100vh-160px)] pt-32 pb-16">
       {/* TITLE */}
 
-      <h1 className="text-4xl font-bold text-center mb-14 text-black">
-        🏆Leaderboard
-      </h1>
-
-      {/* TOP 3 */}
-
+      {/* TOP 3 dextop */}
+<div className="text-center mb-8">
+  <h2 className="text-3xl font-bold">🏆 Highest Scores</h2>
+  <p className="text-gray-500 mt-1">{today}</p>
+</div>
       <div className=" hidden md:flex flex flex-col md:flex-row justify-center items-end gap-6 mb-20">
         {/* SECOND */}
 
@@ -126,7 +195,7 @@ export default function Leaderboard() {
         )}
       </div>
 
-      {/* TOP 3 PODIUM */}
+      {/* TOP 3 PODIUM mobile */}
 
     <div className="md:hidden flex justify-center items-end gap-10 mb-15 mt-20">
 
@@ -203,39 +272,44 @@ export default function Leaderboard() {
               <th className="p-4">Rank</th>
               <th className="p-4">Player</th>
               <th className="p-4">Email</th>
+              {/* <th className="p-4">Last 5 Days</th> */}
               <th className="p-4">Score</th>
             </tr>
           </thead>
 
           <tbody>
-            {others.map((u, i) => (
-              <tr key={u.id} className="border-t hover:bg-gray-50">
-                <td className="p-4 font-semibold">#{i + 4}</td>
+  {users.map((u, i) => (
+   <tr key={u.id} className="border-t hover:bg-gray-50">
+  <td className="p-4 font-semibold">#{i + 1}</td>
 
-                <td className="p-4 flex items-center gap-3">
-                  <img src={u.avatar} className="w-8 h-8 rounded-full" />
-                  {u.name}
-                </td>
+  <td className="p-4 flex items-center gap-3">
+    <img src={u.avatar} className="w-8 h-8 rounded-full" />
+    {u.name}
+  </td>
 
-                <td className="p-4 text-gray-600">{u.email}</td>
+  <td className="p-4 text-gray-600">{u.email}</td>
 
-                <td className="p-4 font-bold text-[#fab31e]">{u.score || 0}</td>
-              </tr>
-            ))}
-          </tbody>
+  {/* <td className="p-4 text-gray-700">
+    {u.weekly?.join("  |  ") || "0/4 | 0/4 | 0/4 | 0/4 | 0/4"}
+  </td> */}
+  <td className="p-4 font-bold text-[#fab31e]">{u.score || 0}</td>
+
+</tr>
+  ))}
+</tbody>
         </table>
       </div>
 
       {/* MOBILE LIST */}
 
       <div className="md:hidden space-y-3">
-        {others.map((u, i) => (
+        {users.map((u, i) => (
           <div
             key={u.id}
             className="bg-white shadow rounded-lg p-4 flex justify-between items-center"
           >
             <div className="flex items-center gap-3">
-              <span className="font-semibold">#{i + 4}</span>
+              <span className="font-semibold">#{i + 1}</span>
 
               <img src={u.avatar} className="w-10 h-10 rounded-full" />
 

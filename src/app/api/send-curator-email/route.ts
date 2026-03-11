@@ -2,9 +2,20 @@ import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
 
-  const { email, name , assignDate} = await req.json()
+const { email, name, assignDate } = await req.json()
 
-  try {
+const d = new Date(assignDate)
+
+// format assigned date
+const formattedDate = `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getFullYear()).slice(-2)}`
+
+// previous day
+const prev = new Date(d)
+prev.setDate(prev.getDate() - 1)
+
+const prevFormatted = `${String(prev.getDate()).padStart(2,"0")}-${String(prev.getMonth()+1).padStart(2,"0")}-${String(prev.getFullYear()).slice(-2)}`
+
+try {
 
     const res = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
@@ -20,11 +31,11 @@ export async function POST(req: Request) {
         email_body: `
 <h2>Hey ${name}</h2>
 
-<p>You have been assigned as the curator for <b>${assignDate}</b>.</p>
+<p>You have been assigned as the curator for <b>${formattedDate}</b>.</p>
 
 <p>Please add your question before:</p>
+<h3>${prevFormatted} 6:00 PM</h3>
 
-<h3>6:00 PM on the previous day</h3>
 
 <a href="https://prediction-pearl-chi.vercel.app/curator"
 style="

@@ -3,13 +3,19 @@ export function calculateScore(votes: any, answers: any) {
   let correct = 0;
 
   Object.keys(answers).forEach((q) => {
-    if (votes[q] === answers[q]) {
+    const userAns = String(votes[q]).trim().toLowerCase();
+    const correctAns = String(answers[q]).trim().toLowerCase();
+
+    if (userAns === correctAns) {
       score += 2;
       correct++;
+    } else {
+      score -= 1;
     }
   });
 
-  if (correct === 5) {
+  // bonus if all 4 correct
+  if (correct === 4) {
     score += 2;
   }
 

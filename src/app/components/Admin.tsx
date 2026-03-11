@@ -21,6 +21,7 @@ export default function Admin() {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
 
+
   /* ---------------- AUTH + LOAD USERS ---------------- */
 
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function Admin() {
         body: JSON.stringify({
           email: user.email,
           name: user.name,
-          date: selectedDate,
+           assignDate: selectedDate,
         }),
       });
 
@@ -140,20 +141,29 @@ export default function Admin() {
     setUsers((prev) => prev.filter((u) => u.id !== id));
   };
 
-  const removeAssignment = async (eventInfo: any) => {
-    const date = eventInfo.event.startStr;
+const removeAssignment = async (eventInfo: any) => {
 
-    if (!confirm(`Remove curator from ${date}?`)) return;
+  const date = eventInfo.event.startStr;
 
-    try {
-      await deleteDoc(doc(db, "dailyCurator", date));
+  if (!confirm(`Remove curator from ${date}?`)) return;
 
-      setEvents((prev) => prev.filter((e) => e.date !== date));
-    } catch (err) {
-      console.error(err);
-      alert("Failed to remove");
-    }
-  };
+  try {
+
+    // delete from firestore
+    await deleteDoc(doc(db, "dailyCurator", date));
+
+    // remove from UI state
+    setEvents((prev) => prev.filter((e) => e.id !== date));
+
+    // remove from calendar instance
+    eventInfo.event.remove();
+
+  } catch (err) {
+    console.error("DELETE ERROR:", err);
+    alert("Failed to remove curator");
+  }
+
+};
   /* ---------------- UI ---------------- */
   const renderEventContent = (eventInfo: any) => {
     return (

@@ -63,70 +63,135 @@ export default function LandingPage() {
   const [showPinPopup, setShowPinPopup] = useState(false);
   const [pin, setPin] = useState("");
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [alreadyVotedError, setAlreadyVotedError] = useState(false);
+  const [todayCurator, setTodayCurator] = useState<any>(null);
+  const [checkingVote, setCheckingVote] = useState(true);
 
-  useEffect(() => {
-    if (checkingRole) return;
-    if (role === "admin") return;
+useEffect(() => {
+  if (checkingRole || checkingVote || finished) return;
+  if (role === "admin") return;
 
-    const loadQuestions = async () => {
-      const q = query(
-        collection(db, "questions"),
-        orderBy("createdAt", "desc"),
-        limit(5),
-      );
+  const loadQuestions = async () => {
+    const q = query(
+      collection(db, "questions"),
+      orderBy("createdAt", "desc"),
+      limit(4)
+    );
 
-      const snap = await getDocs(q);
+    const snap = await getDocs(q);
 
-      const data = snap.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    const data = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-      setQuestions(data);
-    };
+    setQuestions(data);
+  };
 
-    loadQuestions();
-  }, [checkingRole, role]);
+  loadQuestions();
+}, [checkingRole, checkingVote, role, finished]);
 
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (user) => {
-      if (!user) {
-        setCheckingRole(false);
-        return;
-      }
+useEffect(() => {
+  const unsub = auth.onAuthStateChanged(async (user) => {
 
-      const snap = await getDoc(doc(db, "users", user.uid));
-
-      if (snap.exists()) {
-        const userRole = snap.data().role?.toString().trim().toLowerCase();
-        setRole(userRole);
-      }
-
+    if (!user) {
       setCheckingRole(false);
-    });
+      setCheckingVote(false);
+      return;
+    }
 
-    return () => unsub();
-  }, []);
+    const snap = await getDoc(doc(db, "users", user.uid));
 
-  useEffect(() => {
-    if (!finished) return;
+    if (snap.exists()) {
+      const userRole = snap.data().role?.toString().trim().toLowerCase();
+      setRole(userRole);
+    }
 
-    shootBottomSideConfetti();
+    const voted = await hasVotedToday(user.uid);
 
-    const audio = new Audio("/confetti.mp3");
-    audio.volume = 0.8;
-    audio.play();
+    if (voted) {
+      setFinished(true);
+    }
 
-    const stopTimer = setTimeout(() => {
-      audio.pause();
-      audio.currentTime = 0;
-    }, 10000);
+    setCheckingRole(false);
+    setCheckingVote(false);
 
-    return () => clearTimeout(stopTimer);
-  }, [finished]);
+  });
+
+  return () => unsub();
+}, []);
+useEffect(() => {
+
+  const pinUser = localStorage.getItem("pinUser");
+
+  if (pinUser) {
+    const parsed = JSON.parse(pinUser);
+
+    if (parsed?.uid) {
+      setRole(parsed.role || "user");
+      setCheckingRole(false);
+    }
+  }
+
+}, []);
+
+useEffect(() => {
+  if (!finished) return;
+
+  shootBottomSideConfetti();
+
+  const audio = new Audio("/confetti.mp3");
+  audio.volume = 0.8;
+
+  audio.play().catch(() => {});
+
+  const stopTimer = setTimeout(() => {
+    audio.pause();
+    audio.currentTime = 0;
+  }, 10000);
+
+  return () => clearTimeout(stopTimer);
+}, [finished]);
+useEffect(() => {
+  const loadCurator = async () => {
+
+    const today = new Date().toISOString().split("T")[0]; 
+    // format: 2026-03-11 (same as admin saved)
+
+    const snap = await getDoc(doc(db, "dailyCurator", today));
+
+    if (snap.exists()) {
+      setTodayCurator({
+        name: snap.data().name,
+        date: today,
+      });
+    }
+  };
+
+  loadCurator();
+}, []);
+
+  const hasVotedToday = async (uid: unknown) => {
+  const start = new Date();
+  start.setHours(0,0,0,0);
+
+  const end = new Date();
+  end.setHours(23,59,59,999);
+
+  const q = query(
+    collection(db, "votes"),
+    where("userId", "==", uid),
+    where("createdAt", ">=", start),
+    where("createdAt", "<=", end),
+    limit(1)
+  );
+
+  const snap = await getDocs(q);
+
+  return !snap.empty;
+};
 
 const submitVotes = async (uid: any) => {
-
   try {
 
     for (const qid of Object.keys(answers)) {
@@ -150,6 +215,11 @@ const submitVotes = async (uid: any) => {
       await updateLeaderboard(correctAnswers, uid);
     }
 
+    // logout user
+    localStorage.removeItem("pinUser");
+    await auth.signOut().catch(() => {});
+    window.dispatchEvent(new Event("pin-logout"));
+
     setFinished(true);
 
   } catch (err) {
@@ -158,17 +228,44 @@ const submitVotes = async (uid: any) => {
   }
 };
 
-  const saveVotes = async () => {
-    const user = auth.currentUser;
+const saveVotes = async () => {
 
-    if (!user) {
-      setShowPinPopup(true);
-      setPendingSubmit(true);
-      return;
-    }
+  let uid: any = null;
 
-    await submitVotes(user.uid);
-  };
+  const user = auth.currentUser;
+  if (user) uid = user.uid;
+
+  const pinUser = localStorage.getItem("pinUser");
+  if (!uid && pinUser) {
+    uid = JSON.parse(pinUser).uid;
+  }
+
+  if (!uid) {
+    setShowPinPopup(true);
+    setPendingSubmit(true);
+    return;
+  }
+
+const alreadyVoted = await hasVotedToday(uid);
+
+if (alreadyVoted) {
+
+  const pinUser = localStorage.getItem("pinUser");
+
+  // PIN login → show error page
+  if (pinUser) {
+    setAlreadyVotedError(true);
+  } 
+  // Email login → show thank you page
+  else {
+    setFinished(true);
+  }
+
+  return;
+}
+
+  await submitVotes(uid);
+};
 
 const verifyPin = async () => {
 
@@ -186,21 +283,43 @@ const verifyPin = async () => {
 
   const uid = snap.data().uid;
 
-  // close popup
-  setShowPinPopup(false);
+  // get user info
+  const userSnap = await getDoc(doc(db, "users", uid));
 
-  // reset pin input
+  if (userSnap.exists()) {
+
+    const userData = userSnap.data();
+
+    // 🔥 SAVE SESSION
+    localStorage.setItem(
+  "pinUser",
+  JSON.stringify({
+    uid,
+    role: userData.role || "user",
+    name: userData.name
+  })
+);
+
+window.dispatchEvent(new Event("pin-login"));
+  }
+
+  setShowPinPopup(false);
   setPin("");
 
-  if (pendingSubmit) {
-    setPendingSubmit(false);
+if (pendingSubmit) {
 
-    // run submit
-    await submitVotes(uid);
+  const alreadyVoted = await hasVotedToday(uid);
 
-    // force UI update
-    setFinished(true);
-  }
+if (alreadyVoted) {
+  setAlreadyVotedError(true);
+  setPendingSubmit(false);
+  return;
+}
+
+  setPendingSubmit(false);
+  await submitVotes(uid);
+}
+
 };
 
   const selectAnswer = (qid: any, value: any) => {
@@ -233,7 +352,7 @@ const verifyPin = async () => {
   if (checkingRole) {
     return (
       <section className="h-screen flex items-center justify-center">
-        <p className="text-white">Loading...</p>
+        <p className="black-text">Loading...</p>
       </section>
     );
   }
@@ -261,6 +380,25 @@ const verifyPin = async () => {
     );
   }
 
+  if (alreadyVotedError) {
+  return (
+  
+
+<section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          <h2 className="text-4xl text-red-400 mb-4">
+          You Already Voted Today
+        </h2>
+
+          <p className="text-gray-300 text-lg">
+            Each user can vote only once per day.
+          </p>
+          <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+        </div>
+      </section>
+  );
+}
+
   if (finished) {
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
@@ -284,7 +422,7 @@ const verifyPin = async () => {
   if (!current) {
     return (
       <section className="h-screen flex items-center justify-center">
-        <p className="text-white">Loading questions...</p>
+        <p className="black-text">Loading questions...</p>
       </section>
     );
   }
@@ -297,8 +435,22 @@ const verifyPin = async () => {
       <div className="bg-[#1D1D1D] rounded-[20px] relative overflow-hidden px-6 py-8">
         <div className="max-w-3xl mx-auto text-center mb-6">
           <h2 className="text-3xl font-medium text-white">
-            Office <span className="text-highlight">Predictions</span>
-          </h2>
+  Office <span className="text-highlight">Predictions</span>
+</h2>
+
+{todayCurator && (
+  <p className="text-gray-400 text-sm mt-2">
+    Curated by <span className="text-highlight font-semibold capitalize">
+      {todayCurator.name}
+    </span>{" "}
+    for{" "}
+   {new Date(todayCurator.date).toLocaleDateString("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+})}
+  </p>
+)}
 
           <div className="mt-6">
             <div className="flex gap-3 items-center">
@@ -339,35 +491,48 @@ const verifyPin = async () => {
 
             <h3 className="text-xl text-white mb-10">{current.question}</h3>
 
-            <div className="flex gap-6">
-              <button
-                onClick={() => selectAnswer(current.id, "yes")}
-                className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-                  answers[current.id] === "yes"
-                    ? "bg-[#fab31e] text-black"
-                    : "text-white hover:bg-[#fab31e] hover:text-black"
-                }`}
-              >
-                Yes
-              </button>
+          <div className="flex flex-wrap items-center gap-6">
 
-              <button
-                onClick={() => selectAnswer(current.id, "no")}
-                className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-                  answers[current.id] === "no"
-                    ? "bg-[#fab31e] text-black"
-                    : "text-white hover:bg-[#fab31e] hover:text-black"
-                }`}
-              >
-                No
-              </button>
+  <button
+    onClick={() => selectAnswer(current.id, "yes")}
+    className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+      answers[current.id] === "yes"
+        ? "bg-[#fab31e] text-black"
+        : "text-white hover:bg-[#fab31e] hover:text-black"
+    }`}
+  >
+    Yes
+  </button>
 
-              {showPinPopup && (
+  <button
+    onClick={() => selectAnswer(current.id, "no")}
+    className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+      answers[current.id] === "no"
+        ? "bg-[#fab31e] text-black"
+        : "text-white hover:bg-[#fab31e] hover:text-black"
+    }`}
+  >
+    No
+  </button>
+
+  {step === totalSteps - 1 && (
+    <div className="w-full md:w-auto md:ml-auto">
+      <Button
+        onClick={saveVotes}
+        text="Submit"
+        className="text-white w-full md:w-auto"
+      />
+    </div>
+  )}
+
+</div>
+
+ {showPinPopup && (
                 <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
                   <div className="bg-white p-6 rounded-xl w-[300px]">
-                    <h3 className="text-lg font-semibold mb-4">
+                    <h4 className=" font-semibold mb-4">
                       Enter Your 4 Digit PIN
-                    </h3>
+                    </h4>
 
                     <input
                       type="password"
@@ -380,7 +545,7 @@ const verifyPin = async () => {
 
                     <button
                       onClick={verifyPin}
-                      className="w-full bg-black text-white py-2 rounded"
+                      className="w-full bg-black text-white py-2 rounded cursor-pointer"
                     >
                       Verify
                     </button>
@@ -391,7 +556,7 @@ const verifyPin = async () => {
     setPin("");
     setPendingSubmit(false);
   }}
-  className="mt-2 w-full border py-2 rounded"
+  className="mt-2 w-full border py-2 rounded cursor-pointer"
 >
   Cancel
 </button>
@@ -399,16 +564,6 @@ const verifyPin = async () => {
                 </div>
               )}
 
-              {step === totalSteps - 1 && (
-                <div className="ml-auto">
-                  <Button
-                    onClick={saveVotes}
-                    text="Submit"
-                    className="text-white"
-                  />
-                </div>
-              )}
-            </div>
           </div>
         </div>
 

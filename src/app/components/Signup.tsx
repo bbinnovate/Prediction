@@ -66,7 +66,16 @@ if(pinDoc.exists()){
 await setDoc(doc(db, "pinLogin", pin), {
   uid: user.uid
 });
+localStorage.setItem(
+  "pinUser",
+  JSON.stringify({
+    uid: user.uid,
+    role: "user",
+    name: name
+  })
+);
 
+window.dispatchEvent(new Event("pin-login"));
       const token = await user.getIdToken();
 
       setCookie("firebase-auth", token, {

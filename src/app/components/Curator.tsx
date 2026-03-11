@@ -15,17 +15,20 @@ import { updateLeaderboard } from "@/lib/updateLeaderboard";
 import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Button from "./Button";
+import { setDoc } from "firebase/firestore";
 
 export default function Curator() {
-  const [questions, setQuestions] = useState(["", "", "", "", ""]);
+  const [questions, setQuestions] = useState(["", "", "", ""]);
   const [savedQuestions, setSavedQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [answers, setAnswers] = useState<any>({});
   const [answered, setAnswered] = useState(false);
   const router = useRouter();
+  const [assignedDate, setAssignedDate] = useState("");
 
-  const today = new Date().toISOString().split("T")[0];
-
+const now = new Date();
+const today = new Date().toISOString().split("T")[0];
+const currentMinutes = now.getHours() * 60 + now.getMinutes();
   // LOAD PAGE + PERMISSION CHECK
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (user) => {
@@ -44,21 +47,63 @@ if (!userSnap.exists()) {
 
 const role = userSnap.data().role;
 
-if (role !== "admin") {
-  const curatorSnap = await getDoc(doc(db, "dailyCurator", today));
+let allowedDate = null;
 
-  if (!curatorSnap.exists() || curatorSnap.data().curatorId !== user.uid) {
-    router.push("/");
-    return;
-  }
+const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
+
+const noon = 12 * 60;
+const threePM = 15 * 60;
+
+let activeDate: string | null = null;
+
+// decide which curator date is active
+if (currentMinutes < noon) {
+  activeDate = today;
 }
 
-      // check if questions already exist today
+if (currentMinutes >= threePM) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  activeDate = tomorrow.toISOString().split("T")[0];
+}
+
+// admin always allowed
+if (role === "admin") {
+  allowedDate = activeDate || today;
+} else {
+
+  if (!activeDate) {
+    allowedDate = null;
+  } else {
+
+    const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
+
+    if (curatorSnap.exists()) {
+      const data = curatorSnap.data();
+
+      if (data.curatorId === user.uid) {
+        allowedDate = activeDate;
+      }
+    }
+
+  }
+
+}
+
+if (!allowedDate && role !== "admin") {
+  router.push("/");
+  return;
+}
+
+const finalDate = allowedDate || today;
+setAssignedDate(finalDate);
+
+// check if questions already exist
 const q = query(
   collection(db, "questions"),
-  where("date", "==", today),
+  where("date", "==", finalDate),
   where("curatorId", "==", user.uid),
-  limit(5)
+  limit(4)
 );
 
 const snap = await getDocs(q);
@@ -85,7 +130,7 @@ if (allAnswered) {
     });
 
     return () => unsub();
-  }, []);
+  }, [assignedDate]);
 
   // UPDATE INPUT
   const updateQuestion = (index: number, value: string) => {
@@ -96,8 +141,8 @@ if (allAnswered) {
 
   // SAVE QUESTIONS (ONLY ONCE PER DAY)
   const saveQuestions = async () => {
-   if (savedQuestions.length >= 5) {
-  alert("5 questions already exist for today");
+   if (savedQuestions.length >= 4) {
+  alert("4 questions already exist for today");
   return;
 }
 
@@ -109,7 +154,7 @@ if (allAnswered) {
       const ref = await addDoc(collection(db, "questions"), {
         question: q,
         correctAnswer: null,
-        date: today,
+        date: assignedDate,
         curatorId: auth.currentUser?.uid,
         createdAt: serverTimestamp(),
       });
@@ -133,40 +178,39 @@ if (allAnswered) {
   };
 
   // SAVE ANSWERS BUTTON
-  const saveAnswers = async () => {
-    const updated: any[] = [];
+const saveAnswers = async () => {
+  const updated: any[] = [];
 
-    for (const q of savedQuestions) {
-      const ans = answers[q.id];
+  for (const q of savedQuestions) {
+    const ans = answers[q.id];
 
-      if (!ans) {
-        alert("Answer all questions");
-        return;
-      }
-
-      await updateDoc(doc(db, "questions", q.id), {
-  correctAnswer: ans,
-  answeredBy: auth.currentUser?.uid
-});
-
-      updated.push({ ...q, correctAnswer: ans });
+    if (!ans) {
+      alert("Answer all questions");
+      return;
     }
 
-    setSavedQuestions(updated);
-
-    const answerObj: any = {};
-
-    updated.forEach((q) => {
-      answerObj[q.id] = q.correctAnswer;
+    await updateDoc(doc(db, "questions", q.id), {
+      correctAnswer: ans,
+      answeredBy: auth.currentUser?.uid
     });
 
-await updateLeaderboard(answerObj);
+    updated.push({ ...q, correctAnswer: ans });
+  }
 
-alert("Answers saved");
+  setSavedQuestions(updated);
 
-setAnswered(true);
-  };
+  const answerObj: any = {};
 
+  updated.forEach((q) => {
+    answerObj[q.id] = q.correctAnswer;
+  });
+
+  await updateLeaderboard(answerObj);
+
+  alert("Answers saved");
+
+  setAnswered(true);
+};
   if (loading) return  <section className="h-screen flex items-center justify-center">
         <p>Loading questions...</p>
       </section>;
@@ -198,7 +242,7 @@ setAnswered(true);
 
   return (
     <div className=" container min-h-[calc(100vh-160px)] lg:pt-40 pt-30 lg:py-20 md:py-15 py-10 ">
-      <h1 className="text-2xl font-bold mb-6">Add 5 Questions</h1>
+      <h1 className="text-2xl font-bold mb-6">Add 4 Questions</h1>
 
       {/* INPUTS */}
       <div className="bg-[#1D1D1D] rounded-[20px] relative overflow-hidden px-8 py-8 ">

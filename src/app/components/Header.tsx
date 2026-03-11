@@ -7,7 +7,7 @@ import Button from "./Button";
 import { useEffect, useState } from "react";
 import { auth, db } from "@/lib/firebase";
 import { signOut } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { Menu, X } from 'lucide-react';
 
 export default function DesktopNav() {
@@ -20,37 +20,97 @@ export default function DesktopNav() {
 
   const today = new Date().toISOString().split("T")[0];
 
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (u) => {
-      if (!u) {
-        setUser(null);
-        return;
-      }
+  
+useEffect(() => {
+
+  const loadPinUser = () => {
+    const pinUser = localStorage.getItem("pinUser");
+
+    if (pinUser) {
+      const parsed = JSON.parse(pinUser);
+
+      setUser({ uid: parsed.uid });
+      setRole(parsed.role || "user");
+    }
+  };
+
+  // restore pin login
+  loadPinUser();
+
+  window.addEventListener("pin-login", loadPinUser);
+
+  const unsub = auth.onAuthStateChanged(async (u) => {
+
+    if (!u) {
+      loadPinUser();
+      return;
+    }
+
+    const userSnap = await getDoc(doc(db, "users", u.uid));
+
+    if (userSnap.exists()) {
 
       setUser(u);
+      setRole(userSnap.data().role || "");
 
-      // get role
-      const userSnap = await getDoc(doc(db, "users", u.uid));
+      const today = new Date().toISOString().split("T")[0];
 
-      if (userSnap.exists()) {
-        setRole(userSnap.data().role || "");
-      }
+const now = new Date();
+const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
-      // check curator
-      const curatorSnap = await getDoc(doc(db, "dailyCurator", today));
+const noon = 12 * 60;
+const threePM = 15 * 60;
 
-      if (curatorSnap.exists() && curatorSnap.data().curatorId === u.uid) {
-        setIsCurator(true);
-      }
-    });
+let activeDate: string | null = null;
 
-    return () => unsub();
-  }, []);
 
-  const logout = async () => {
-    await signOut(auth);
-    window.location.href = "/";
+if (currentMinutes < noon) {
+  activeDate = today;
+}
+
+if (currentMinutes >= threePM) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  activeDate = tomorrow.toISOString().split("T")[0];
+}
+
+if (!activeDate) {
+  setIsCurator(false);
+} else {
+
+  const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
+
+  if (curatorSnap.exists() && curatorSnap.data().curatorId === u.uid) {
+    setIsCurator(true);
+  } else {
+    setIsCurator(false);
+  }
+
+}
+
+
+    }
+
+  });
+
+  return () => {
+    unsub();
+    window.removeEventListener("pin-login", loadPinUser);
   };
+
+}, []);
+
+
+const logout = async () => {
+
+  localStorage.removeItem("pinUser");
+
+  try {
+    await signOut(auth);
+  } catch {}
+
+  window.location.href = "/";
+};
 
   return (
     <div className=" container">
