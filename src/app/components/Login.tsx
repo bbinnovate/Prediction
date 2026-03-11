@@ -4,6 +4,7 @@ import { useState } from "react"
 import { db } from "@/lib/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import { useRouter } from "next/navigation"
+import { Eye, EyeOff } from "lucide-react"
 import Button from "../components/Button"
 
 export default function Login(){
@@ -11,6 +12,7 @@ export default function Login(){
  const router = useRouter()
 
  const [pin,setPin] = useState("")
+ const [showPin, setShowPin] = useState(false)
  const [error,setError] = useState("")
  const [loading,setLoading] = useState(false)
 
@@ -80,22 +82,31 @@ export default function Login(){
 
    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
 
-   <h4 className="text-xl font-semibold white-text text-center">
+   <h3 className="text-xl font-semibold white-text text-center">
     Enter Login PIN
-   </h4>
+   </h3>
 
    {error && (
     <p className="text-red-500 text-sm text-center">{error}</p>
    )}
 
-   <input
-    type="password"
-    value={pin}
-    onChange={(e)=>setPin(e.target.value)}
-    placeholder="4 Digit PIN"
-    maxLength={4}
-    className="w-full border p-2 rounded white-text bg-black text-center tracking-widest"
-   />
+   <div className="relative">
+    <input
+     type={showPin ? "text" : "password"}
+     value={pin}
+     onChange={(e)=>setPin(e.target.value)}
+     placeholder="4 Digit PIN"
+     maxLength={4}
+     className="w-full border p-2 rounded white-text bg-black tracking-widest pr-10"
+    />
+    <button
+     type="button"
+     onClick={() => setShowPin(!showPin)}
+     className="absolute right-3 top-1/2 -translate-y-1/2 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
+    >
+     {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+    </button>
+   </div>
 
    <Button
     onClick={login}

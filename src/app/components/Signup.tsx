@@ -161,9 +161,9 @@ window.dispatchEvent(new Event("pin-login"));
         >
              <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
 
-          <h2 className="text-xl font-semibold text-white text-center">
+          <h3 className="text-xl font-semibold text-white text-center">
             Signup
-          </h2>
+          </h3>
 
           {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
