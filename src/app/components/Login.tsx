@@ -90,23 +90,30 @@ export default function Login(){
     <p className="text-red-500 text-sm text-center">{error}</p>
    )}
 
-   <div className="relative">
-    <input
-     type={showPin ? "text" : "password"}
-     value={pin}
-     onChange={(e)=>setPin(e.target.value)}
-     placeholder="4 Digit PIN"
-     maxLength={4}
-     className="w-full border p-2 rounded white-text bg-black tracking-widest pr-10"
-    />
-    <button
-     type="button"
-     onClick={() => setShowPin(!showPin)}
-     className="absolute right-3 top-1/2 -translate-y-1/2 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
-    >
-     {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-    </button>
-   </div>
+  <div className="relative">
+  <input
+    type={showPin ? "text" : "password"}
+    value={pin}
+    onChange={(e)=>setPin(e.target.value)}
+    placeholder="4 Digit PIN"
+    maxLength={4}
+    className="w-full border p-2 rounded white-text bg-black tracking-widest pr-10"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPin(!showPin)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-white opacity-80 hover:opacity-100 transition cursor-pointer"
+  >
+    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+  </button>
+</div>
+
+<p className="text-right mt-1 text-sm">
+  <a href="/forgot-pin" className="text-[#FAB31E] underline">
+    Forgot PIN?
+  </a>
+</p>
 
    <Button
     onClick={login}
@@ -114,7 +121,6 @@ export default function Login(){
     className="white-text"
     text={loading ? "Logging in..." : "Login"}
    />
-
 
    <p className="text-center text-white text-sm mt-2">
   Don’t have an account?{" "}
