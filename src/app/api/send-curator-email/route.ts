@@ -5,7 +5,8 @@ export async function POST(req: Request) {
   const { email, name, assignDate } = await req.json()
 
   const d = new Date(assignDate)
-
+const cleanName =
+name?.trim().charAt(0).toUpperCase() + name?.trim().slice(1).toLowerCase()
   // format assigned date
   const formattedDate = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getFullYear()).slice(-2)}`
 
@@ -29,7 +30,7 @@ export async function POST(req: Request) {
         email_subject: "Your turn to add a question 🎯",
 
         email_body: `
-<h2>Hey ${name},</h2>
+<h2>Hey ${cleanName},</h2>
 
 <p>You have been assigned as the curator for <b>${formattedDate}</b>.</p>
 

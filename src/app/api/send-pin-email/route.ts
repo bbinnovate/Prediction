@@ -3,6 +3,8 @@ import { NextResponse } from "next/server"
 export async function POST(req: Request) {
 
     const { email, name, pin } = await req.json()
+    const cleanName =
+name?.trim().charAt(0).toUpperCase() + name?.trim().slice(1).toLowerCase()
 
     try {
 
@@ -20,7 +22,7 @@ export async function POST(req: Request) {
                 email_body: `
 <div style="font-family:Arial,Helvetica,sans-serif;line-height:1.6;color:#333">
 
-<h2>Hello ${name},</h2>
+<h2>Hello ${cleanName},</h2>
 
 <p>You requested to recover your login PIN.</p>
 

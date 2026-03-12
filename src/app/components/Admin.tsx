@@ -251,7 +251,7 @@ const removeAssignment = async (eventInfo: any) => {
 
       {/* ---------------- CALENDAR ---------------- */}
 
-      <div className="bg-white rounded-xl shadow p-6 mb-12 lg:mt-20 mt-20">
+      <div className="bg-white rounded-[20px] shadow lg:p-6 p-3 mb-12 lg:mt-20 mt-20">
        <FullCalendar
   plugins={[dayGridPlugin, interactionPlugin]}
   initialView="dayGridMonth"
@@ -278,7 +278,7 @@ const removeAssignment = async (eventInfo: any) => {
     }}
   >
 
-<div className="bg-white rounded-xl shadow-xl p-6 w-[600px] max-h-[80vh] overflow-y-auto">
+<div className=" bg-white rounded-[20px] shadow-xl p-6 w-[800px] max-w-[90%] max-h-[80vh] overflow-y-auto">
 
 {assignSuccess ? (
   <div className="flex flex-col items-center justify-center py-10">
@@ -294,7 +294,7 @@ const removeAssignment = async (eventInfo: any) => {
     <h4 className=" font-semibold mb-4">
       Assign Curator for {new Date(selectedDate).toLocaleDateString("en-GB")}
     </h4>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
 
         {users.map((user) => (
           <button
@@ -382,14 +382,14 @@ const removeAssignment = async (eventInfo: any) => {
 )} */}
 
       {/* ---------------- USER TABLE ---------------- */}
-      <div className="flex justify-end mb-4">
+      {/* <div className="flex justify-end mb-4">
   <button
     onClick={resetAllScores}
     className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
   >
     Reset All Scores
   </button>
-</div>
+</div> */}
 
       <div className="overflow-x-auto border rounded-[20px] shadow">
         <table className="min-w-full divide-y divide-gray-200 text-sm">

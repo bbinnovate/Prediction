@@ -15,6 +15,7 @@ import {
 import { updateLeaderboard } from "@/lib/updateLeaderboard";
 import { db, auth } from "@/lib/firebase";
 import Button from "./Button";
+import { Eye, EyeOff } from "lucide-react"
 
 type Question = {
   id: string
@@ -62,6 +63,7 @@ export default function LandingPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<any>({});
   const [finished, setFinished] = useState(false);
+   const [showPin, setShowPin] = useState(false)
   
   // Progress calculations
   const totalSteps = questions?.length || 0;
@@ -206,7 +208,7 @@ useEffect(() => {
   shootBottomSideConfetti();
 
   const audio = new Audio("/confetti.mp3");
-  audio.volume = 0.8;
+  audio.volume = 0.1;
 
   audio.play().catch(() => {});
 
@@ -221,7 +223,9 @@ useEffect(() => {
 useEffect(() => {
   const loadCurator = async () => {
 
-    const today = new Date().toISOString().split("T")[0]; 
+   const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata"
+});
     // format: 2026-03-11 (same as admin saved)
 
     const snap = await getDoc(doc(db, "dailyCurator", today));
@@ -285,22 +289,22 @@ if (timeLeft === 0) {
 }, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
 // Time window check
-useEffect(() => {
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+// useEffect(() => {
+//   const now = new Date();
+//   const hour = now.getHours();
+//   const minute = now.getMinutes();
 
-  // 12 AM → 6 AM
-  if (hour < 6) {
-    setNotStarted(true);
-    return;
-  }
+//   // 12 AM → 6 AM
+//   if (hour < 6) {
+//     setNotStarted(true);
+//     return;
+//   }
 
-  // 10:30 AM → 12 AM
-  if (hour > 10 || (hour === 10 && minute > 30)) {
-    setTimeExpired(true);
-  }
-}, []);
+//   // 10:30 AM → 12 AM
+//   if (hour > 10 || (hour === 10 && minute > 30)) {
+//     setTimeExpired(true);
+//   }
+// }, []);
 
   const hasVotedToday = async (uid: unknown) => {
   const start = new Date();
@@ -791,51 +795,54 @@ const startQuiz = async () => {
 
             {/* We no longer use step === totalSteps so the above submit works directly on the last step */}
             
-            {showPinPopup && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <div className="bg-white p-6 rounded-xl w-[320px]">
-
+           {showPinPopup && (
+  <div
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    onClick={() => {
+      setShowPinPopup(false);
+      setPin("");
+      setPinError("");
+      setPendingSubmit(false);
+    }}
+  >
+    <div
+className="bg-white p-6 rounded-[20px] w-[400px] max-w-[90%]"
+      onClick={(e) => e.stopPropagation()}
+    >
       <h4 className="font-semibold mb-4 text-center">
         Enter Your 4 Digit PIN
       </h4>
 
-      <input
-        type="password"
-        maxLength={4}
-        value={pin}
-        onChange={(e) => {
-          setPin(e.target.value);
-          setPinError("");
-        }}
-        className="w-full border p-2 rounded mb-2 text-center tracking-widest"
-        placeholder="••••"
-      />
+        <div className="relative">
+  <input
+    type={showPin ? "text" : "password"}
+    value={pin}
+    onChange={(e)=>setPin(e.target.value)}
+    placeholder="4 Digit PIN"
+    maxLength={4}
+    className="w-full border p-2 rounded mb-2  tracking-widest"
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPin(!showPin)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-black opacity-80 hover:opacity-100 transition cursor-pointer"
+  >
+    {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+  </button>
+</div>
 
       {pinError && (
-        <p className="text-red-500 text-sm mb-3 text-center">
+        <p className="text-red-500 text-sm mb-3 ">
           {pinError}
         </p>
       )}
 
-      <button
+      <Button
         onClick={verifyPin}
-        className="w-full bg-black text-white py-2 rounded cursor-pointer"
-      >
-        Verify
-      </button>
-
-      <button
-        onClick={() => {
-          setShowPinPopup(false);
-          setPin("");
-          setPinError("");
-          setPendingSubmit(false);
-        }}
-        className="mt-2 w-full border py-2 rounded cursor-pointer"
-      >
-        Cancel
-      </button>
-
+        className="black-text"
+        text="Verify"
+      />
     </div>
   </div>
 )}
