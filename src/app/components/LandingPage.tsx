@@ -127,20 +127,31 @@ const loadQuestions = async () => {
   const q = query(
     collection(db, "questions"),
     orderBy("createdAt", "desc"),
-    limit(4)
+    limit(50) // fetch more so we can remove duplicates safely
   );
 
   const snap = await getDocs(q);
 
-  const data = snap.docs
-    .map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }))
-    .reverse() as Question[];
+const raw: Question[] = snap.docs.map((doc) => ({
+  id: doc.id,
+  ...(doc.data() as Omit<Question, "id">),
+}));
 
-  setQuestions(data);
+const seen = new Set<string>();
+const unique: Question[] = [];
+
+for (const q of raw) {
+  const text = q.question?.trim().toLowerCase();
+
+  if (!seen.has(text)) {
+    seen.add(text);
+    unique.push(q);
+  }
+}
+
+setQuestions(unique.slice(0, 4));
 };
+
   loadQuestions();
 }, [checkingRole, checkingVote, role, finished]);
 
@@ -230,49 +241,66 @@ useEffect(() => {
 useEffect(() => {
   if (!quizStarted || finished || step >= totalSteps) return;
 
-  const currentQid = questions[step]?.id;
-  
-  // IF on the last question: Wait until 2 seconds, OR stop immediately if they answered
-  if (step === totalSteps - 1) {
-    if (timeLeft <= 2) return; 
-    if (answers[currentQid]) return; 
-  }
+if (timeLeft === 0) {
+  const qid = questions[step].id;
 
-  if (timeLeft === 0) {
-    // time is up for this question, move to next and record empty answer
-    const qid = questions[step].id;
-    setAnswers((prev: any) => ({
-      ...prev,
-      [qid]: "", // Explicit empty answer when skipped
-    }));
-    handleAutoAdvance();
+  const updatedAnswers = {
+    ...answers,
+    [qid]: "",
+  };
+
+  setAnswers(updatedAnswers);
+
+  const isLastQuestion = step === totalSteps - 1;
+
+  if (isLastQuestion) {
+
+    let uid: any = null;
+
+    const user = auth.currentUser;
+    if (user) uid = user.uid;
+
+    const pinUser = localStorage.getItem("pinUser");
+    if (!uid && pinUser) {
+      uid = JSON.parse(pinUser).uid;
+    }
+
+    if (uid) {
+       submitVotes(uid);
+    }
+
     return;
   }
+
+  handleAutoAdvance();
+  return;
+}
 
   const timer = setInterval(() => {
     setTimeLeft((prev) => Math.max(0, prev - 1));
   }, 1000);
 
   return () => clearInterval(timer);
+
 }, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
 // Time window check
-// useEffect(() => {
-//   const now = new Date();
-//   const hour = now.getHours();
-//   const minute = now.getMinutes();
+useEffect(() => {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
 
-//   // 12 AM → 6 AM
-//   if (hour < 6) {
-//     setNotStarted(true);
-//     return;
-//   }
+  // 12 AM → 6 AM
+  if (hour < 6) {
+    setNotStarted(true);
+    return;
+  }
 
-//   // 10:30 AM → 12 AM
-//   if (hour > 10 || (hour === 10 && minute > 30)) {
-//     setTimeExpired(true);
-//   }
-// }, []);
+  // 10:30 AM → 12 AM
+  if (hour > 10 || (hour === 10 && minute > 30)) {
+    setTimeExpired(true);
+  }
+}, []);
 
   const hasVotedToday = async (uid: unknown) => {
   const start = new Date();
@@ -295,6 +323,8 @@ useEffect(() => {
 };
 
 const submitVotes = async (uid: any) => {
+
+  setFinished(true);
   try {
 
     for (const qid of Object.keys(answers)) {
@@ -323,7 +353,7 @@ const submitVotes = async (uid: any) => {
     await auth.signOut().catch(() => {});
     window.dispatchEvent(new Event("pin-logout"));
 
-    setFinished(true);
+    
 
   } catch (err) {
     console.error("Vote error:", err);

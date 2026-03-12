@@ -120,17 +120,31 @@ setAssignedDate(finalDate);
 const q = query(
   collection(db, "questions"),
   where("date", "==", finalDate),
-  where("curatorId", "==", uid),
-  limit(4)
+  where("curatorId", "==", uid)
 );
 
 const snap = await getDocs(q);
 
-      const data = snap.docs
-  .map((d) => ({
-    id: d.id,
-    ...d.data(),
-  }))
+const raw = snap.docs.map((d) => ({
+  id: d.id,
+  ...(d.data() as any),
+}));
+
+// remove duplicate questions
+const seen = new Set<string>();
+const unique: any[] = [];
+
+for (const q of raw) {
+  const text = q.question?.trim().toLowerCase();
+
+  if (!seen.has(text)) {
+    seen.add(text);
+    unique.push(q);
+  }
+}
+
+// always show only first 4
+const data = unique.slice(0, 4);
 
     if (data.length > 0) {
 
