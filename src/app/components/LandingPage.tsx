@@ -573,24 +573,24 @@ const startQuiz = async () => {
 }
 
 
-//   if (alreadyVotedError) {
-//   return (
+  if (alreadyVotedError) {
+  return (
   
 
-// <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
-//         <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-//           <h2 className="text-4xl text-red-400 mb-4">
-//           You Already Voted Today
-//         </h2>
+<section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          <h2 className="text-4xl text-red-400 mb-4">
+          You Already Voted Today
+        </h2>
 
-//           <p className="text-gray-300 text-lg">
-//             Each user can vote only once per day.
-//           </p>
-//          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-//         </div>
-//       </section>
-//   );
-// }
+          <p className="text-gray-300 text-lg">
+            Each user can vote only once per day.
+          </p>
+         <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+        </div>
+      </section>
+  );
+}
 
   if (finished) {
     return (
