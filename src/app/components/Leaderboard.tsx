@@ -37,20 +37,24 @@ export default function Leaderboard() {
 
   const questions: any = {};
   questionsSnap.docs.forEach((d) => {
-    questions[d.id] = d.data().correctAnswer;
+  questions[d.id] = d.data()?.correctAnswer ?? null;
   });
 
-  const data = snap.docs.map((d, i) => {
+const data = snap.docs
+.filter(d => d.data()?.name) 
+.map((d, i) => {
     const uid = d.id;
 
     const userVotes = votes.filter((v: any) => v.userId === uid);
     // remove duplicate answers for the same question
 const uniqueVotes: any = {};
-const filteredVotes = Object.values(uniqueVotes);
-filteredVotes.forEach((v: any) => {
+
+// collect unique votes per question
+userVotes.forEach((v: any) => {
   uniqueVotes[v.questionId] = v;
 });
 
+const filteredVotes: any[] = Object.values(uniqueVotes);
 
   // sort votes so order is correct
 filteredVotes.sort((a: any, b: any) => {
@@ -63,7 +67,7 @@ const matches: number[] = [];
 let correctCount = 0;
 let questionCount = 0;
 
-userVotes.forEach((v: any) => {
+filteredVotes.forEach((v: any) => {
   const correctAnswer = questions[v.questionId];
 
 const userAns = String(v.answer).trim().toLowerCase();

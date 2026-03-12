@@ -16,6 +16,12 @@ import { updateLeaderboard } from "@/lib/updateLeaderboard";
 import { db, auth } from "@/lib/firebase";
 import Button from "./Button";
 
+type Question = {
+  id: string
+  question: string
+  correctAnswer?: string
+}
+
 const shootBottomSideConfetti = async () => {
   const confetti = (await import("canvas-confetti")).default;
 
@@ -52,7 +58,7 @@ const shootBottomSideConfetti = async () => {
 };
 
 export default function LandingPage() {
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<any>({});
   const [finished, setFinished] = useState(false);
@@ -116,24 +122,33 @@ useEffect(() => {
 
 useEffect(() => {
   if (checkingRole || checkingVote || finished) return;
-  if (role === "admin") return;
 
-  const loadQuestions = async () => {
-    const q = query(
-      collection(db, "questions"),
-      orderBy("createdAt", "desc"),
-      limit(4)
-    );
+const loadQuestions = async () => {
+  const q = query(
+    collection(db, "questions"),
+    orderBy("createdAt", "desc"),
+    limit(20)
+  );
 
-    const snap = await getDocs(q);
+  const snap = await getDocs(q);
 
-    const data = snap.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+  const data = snap.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Question[];
 
-    setQuestions(data);
-  };
+  const seen = new Set<string>();
+  const uniqueQuestions: Question[] = [];
+
+  for (const q of data) {
+    if (!seen.has(q.question)) {
+      seen.add(q.question);
+      uniqueQuestions.push(q);
+    }
+  }
+
+  setQuestions(uniqueQuestions.slice(0, 4));
+};
 
   loadQuestions();
 }, [checkingRole, checkingVote, role, finished]);
@@ -167,6 +182,7 @@ useEffect(() => {
 
   return () => unsub();
 }, []);
+
 useEffect(() => {
 
   const pinUser = localStorage.getItem("pinUser");
@@ -199,6 +215,7 @@ useEffect(() => {
 
   return () => clearTimeout(stopTimer);
 }, [finished]);
+
 useEffect(() => {
   const loadCurator = async () => {
 
@@ -249,22 +266,22 @@ useEffect(() => {
 }, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
 // Time window check
-useEffect(() => {
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+// useEffect(() => {
+//   const now = new Date();
+//   const hour = now.getHours();
+//   const minute = now.getMinutes();
 
-  // 12 AM → 6 AM
-  if (hour < 6) {
-    setNotStarted(true);
-    return;
-  }
+//   // 12 AM → 6 AM
+//   if (hour < 6) {
+//     setNotStarted(true);
+//     return;
+//   }
 
-  // 10:30 AM → 12 AM
-  if (hour > 10 || (hour === 10 && minute > 30)) {
-    setTimeExpired(true);
-  }
-}, []);
+//   // 10:30 AM → 12 AM
+//   if (hour > 10 || (hour === 10 && minute > 30)) {
+//     setTimeExpired(true);
+//   }
+// }, []);
 
   const hasVotedToday = async (uid: unknown) => {
   const start = new Date();
@@ -364,7 +381,6 @@ if (alreadyVoted) {
 
 const verifyPin = async () => {
 
-  // check PIN length
   if (pin.length !== 4) {
     setPinError("Enter 4 digit PIN");
     return;
@@ -372,76 +388,105 @@ const verifyPin = async () => {
 
   try {
 
-    const snap = await getDoc(doc(db, "pinLogin", pin));
+    // check pin document
+    const pinSnap = await getDoc(doc(db, "pinLogin", pin));
 
-    // PIN not found
-    if (!snap.exists()) {
-      setPinError("Incorrect PIN");
+    if (!pinSnap.exists()) {
+      setPinError("Invalid PIN");
       return;
     }
 
-    // clear error
-    setPinError("");
+    const uid = pinSnap.data()?.uid;
 
-    const uid = snap.data().uid;
-
-    // get user info
-    const userSnap = await getDoc(doc(db, "users", uid));
-
-    if (userSnap.exists()) {
-
-      const userData = userSnap.data();
-
-      // SAVE PIN LOGIN SESSION
-      localStorage.setItem(
-        "pinUser",
-        JSON.stringify({
-          uid,
-          role: userData.role || "user",
-          name: userData.name
-        })
-      );
-
-      window.dispatchEvent(new Event("pin-login"));
+    if (!uid) {
+      setPinError("PIN not linked to user");
+      return;
     }
 
-    // close popup
+    // verify user actually exists
+    const userSnap = await getDoc(doc(db, "users", uid));
+
+    if (!userSnap.exists()) {
+      setPinError("User not found for this PIN");
+      return;
+    }
+
+    const userData = userSnap.data();
+
+    // store session
+    localStorage.setItem(
+      "pinUser",
+      JSON.stringify({
+        uid,
+        role: userData.role || "user",
+        name: userData.name || ""
+      })
+    );
+
+    window.dispatchEvent(new Event("pin-login"));
+
     setShowPinPopup(false);
     setPin("");
 
-    // if user clicked submit before login
-    if (pendingSubmit) {
+    // start quiz only after valid login
+    setQuizStarted(true);
+    setTimeLeft(10);
 
-      const alreadyVoted = await hasVotedToday(uid);
+  } catch (err) {
+    console.error(err);
+    setPinError("Verification failed");
+  }
+};
 
-      if (alreadyVoted) {
-        setAlreadyVotedError(true);
-        setPendingSubmit(false);
+const selectAnswer = async (qid: any, value: any) => {
+
+  const updatedAnswers = {
+    ...answers,
+    [qid]: value,
+  };
+
+  setAnswers(updatedAnswers);
+
+  const isLastQuestion = step === totalSteps - 1;
+
+  if (isLastQuestion) {
+
+    let uid: any = null;
+
+    const user = auth.currentUser;
+    if (user) uid = user.uid;
+
+    const pinUser = localStorage.getItem("pinUser");
+    if (!uid && pinUser) {
+      uid = JSON.parse(pinUser).uid;
+    }
+
+    if (uid) {
+
+      const userSnap = await getDoc(doc(db, "users", uid));
+
+      if (!userSnap.exists()) {
+        console.error("Invalid user attempting vote");
         return;
       }
 
-      setPendingSubmit(false);
+      for (const qid of Object.keys(updatedAnswers)) {
+        await addDoc(collection(db, "votes"), {
+          userId: uid,
+          questionId: qid,
+          answer: updatedAnswers[qid],
+          createdAt: new Date(),
+        });
+      }
 
-      await submitVotes(uid);
+      setFinished(true);
     }
 
-  } catch (error) {
-
-    console.error("PIN verification error:", error);
-    setPinError("Something went wrong. Try again.");
-
+    return;
   }
 
+  handleAutoAdvance();
 };
-
-  const selectAnswer = (qid: any, value: any) => {
-    setAnswers((prev: any) => ({
-      ...prev,
-      [qid]: value,
-    }));
-
-    handleAutoAdvance();
-  };
 
   const handleAutoAdvance = () => {
     if (step < totalSteps - 1) {
@@ -451,10 +496,36 @@ const verifyPin = async () => {
     // we don't automatically submit here anymore as requested, user clicks Submit manually on last question
   };
 
-  const startQuiz = () => {
-    setQuizStarted(true);
-    setTimeLeft(10);
-  };
+const startQuiz = async () => {
+
+  let uid: any = null;
+
+  const user = auth.currentUser;
+  if (user) uid = user.uid;
+
+  const pinUser = localStorage.getItem("pinUser");
+  if (!uid && pinUser) {
+    uid = JSON.parse(pinUser).uid;
+  }
+
+  // USER NOT LOGGED IN → show PIN
+  if (!uid) {
+    setShowPinPopup(true);
+    return;
+  }
+
+  // CHECK IF ALREADY VOTED
+  const voted = await hasVotedToday(uid);
+
+  if (voted) {
+    setAlreadyVotedError(true);
+    return;
+  }
+
+  // START QUIZ
+  setQuizStarted(true);
+  setTimeLeft(10);
+};
 
 
   if (notStarted) {
@@ -511,47 +582,25 @@ const verifyPin = async () => {
   );
 }
 
-  if (role === "admin") {
-    return (
-      <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
-        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-          <h2 className="text-3xl text-white mb-6">You are an Admin</h2>
 
-          <p className="text-gray-300 mb-8">
-            You are not allowed to vote.
-            <br />
-            Please assign a curator.
-          </p>
-
-          <Button
-            className=" white-text"
-            text="Go to Admin Panel"
-            onClick={() => (window.location.href = "/admin")}
-          />
-          <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
-        </div>
-      </section>
-    );
-  }
-
-  if (alreadyVotedError) {
-  return (
+//   if (alreadyVotedError) {
+//   return (
   
 
-<section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
-        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-          <h2 className="text-4xl text-red-400 mb-4">
-          You Already Voted Today
-        </h2>
+// <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+//         <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+//           <h2 className="text-4xl text-red-400 mb-4">
+//           You Already Voted Today
+//         </h2>
 
-          <p className="text-gray-300 text-lg">
-            Each user can vote only once per day.
-          </p>
-          <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
-        </div>
-      </section>
-  );
-}
+//           <p className="text-gray-300 text-lg">
+//             Each user can vote only once per day.
+//           </p>
+//           <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+//         </div>
+//       </section>
+//   );
+// }
 
   if (finished) {
     return (
@@ -696,18 +745,7 @@ const verifyPin = async () => {
                         No
                       </button>
 
-                      {step === totalSteps - 1 && (
-                        <div className="w-full md:w-auto md:ml-auto">
-                          <Button
-  onClick={() => {
-    setStep(totalSteps - 1);
-    saveVotes();
-  }}
-  text={pendingSubmit ? "Submitting..." : "Submit"}
-  className="text-white w-full md:w-auto"
-/>
-                        </div>
-                      )}
+                    
                     </div>
                   </>
                 )}
