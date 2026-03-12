@@ -75,6 +75,7 @@ export default function LandingPage() {
   const [quizStarted, setQuizStarted] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
   const [globalTimeLeft, setGlobalTimeLeft] = useState("");
+  const [pinError, setPinError] = useState("");
 
 useEffect(() => {
   const calculateTimeLeft = () => {
@@ -363,56 +364,73 @@ if (alreadyVoted) {
 
 const verifyPin = async () => {
 
+  // check PIN length
   if (pin.length !== 4) {
-    alert("Enter 4 digit PIN");
+    setPinError("Enter 4 digit PIN");
     return;
   }
 
-  const snap = await getDoc(doc(db, "pinLogin", pin));
+  try {
 
-  if (!snap.exists()) {
-    alert("Incorrect PIN");
-    return;
+    const snap = await getDoc(doc(db, "pinLogin", pin));
+
+    // PIN not found
+    if (!snap.exists()) {
+      setPinError("Incorrect PIN");
+      return;
+    }
+
+    // clear error
+    setPinError("");
+
+    const uid = snap.data().uid;
+
+    // get user info
+    const userSnap = await getDoc(doc(db, "users", uid));
+
+    if (userSnap.exists()) {
+
+      const userData = userSnap.data();
+
+      // SAVE PIN LOGIN SESSION
+      localStorage.setItem(
+        "pinUser",
+        JSON.stringify({
+          uid,
+          role: userData.role || "user",
+          name: userData.name
+        })
+      );
+
+      window.dispatchEvent(new Event("pin-login"));
+    }
+
+    // close popup
+    setShowPinPopup(false);
+    setPin("");
+
+    // if user clicked submit before login
+    if (pendingSubmit) {
+
+      const alreadyVoted = await hasVotedToday(uid);
+
+      if (alreadyVoted) {
+        setAlreadyVotedError(true);
+        setPendingSubmit(false);
+        return;
+      }
+
+      setPendingSubmit(false);
+
+      await submitVotes(uid);
+    }
+
+  } catch (error) {
+
+    console.error("PIN verification error:", error);
+    setPinError("Something went wrong. Try again.");
+
   }
-
-  const uid = snap.data().uid;
-
-  // get user info
-  const userSnap = await getDoc(doc(db, "users", uid));
-
-  if (userSnap.exists()) {
-
-    const userData = userSnap.data();
-
-    // 🔥 SAVE SESSION
-    localStorage.setItem(
-  "pinUser",
-  JSON.stringify({
-    uid,
-    role: userData.role || "user",
-    name: userData.name
-  })
-);
-
-window.dispatchEvent(new Event("pin-login"));
-  }
-
-  setShowPinPopup(false);
-  setPin("");
-
-if (pendingSubmit) {
-
-  const alreadyVoted = await hasVotedToday(uid);
-
-if (alreadyVoted) {
-  setAlreadyVotedError(true);
-  setPendingSubmit(false);
-  return;
-}
-
-  setPendingSubmit(false);
-  await submitVotes(uid);
-}
 
 };
 
@@ -681,14 +699,13 @@ if (alreadyVoted) {
                       {step === totalSteps - 1 && (
                         <div className="w-full md:w-auto md:ml-auto">
                           <Button
-                            onClick={() => {
-                              // Bump step to virtually fill the bar to 100% just before saving
-                              setStep(totalSteps);
-                              saveVotes();
-                            }}
-                            text={pendingSubmit ? "Submitting..." : "Submit"}
-                            className="text-white w-full md:w-auto"
-                          />
+  onClick={() => {
+    setStep(totalSteps - 1);
+    saveVotes();
+  }}
+  text={pendingSubmit ? "Submitting..." : "Submit"}
+  className="text-white w-full md:w-auto"
+/>
                         </div>
                       )}
                     </div>
@@ -700,41 +717,53 @@ if (alreadyVoted) {
             {/* We no longer use step === totalSteps so the above submit works directly on the last step */}
             
             {showPinPopup && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                  <div className="bg-white p-6 rounded-xl w-[300px]">
-                    <h4 className=" font-semibold mb-4">
-                      Enter Your 4 Digit PIN
-                    </h4>
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-xl w-[320px]">
 
-                    <input
-                      type="password"
-                      maxLength={4}
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      className="w-full border p-2 rounded mb-4"
-                      placeholder="••••"
-                    />
+      <h4 className="font-semibold mb-4 text-center">
+        Enter Your 4 Digit PIN
+      </h4>
 
-                    <button
-                      onClick={verifyPin}
-                      className="w-full bg-black text-white py-2 rounded cursor-pointer"
-                    >
-                      Verify
-                    </button>
+      <input
+        type="password"
+        maxLength={4}
+        value={pin}
+        onChange={(e) => {
+          setPin(e.target.value);
+          setPinError("");
+        }}
+        className="w-full border p-2 rounded mb-2 text-center tracking-widest"
+        placeholder="••••"
+      />
 
-                   <button
-  onClick={() => {
-    setShowPinPopup(false);
-    setPin("");
-    setPendingSubmit(false);
-  }}
-  className="mt-2 w-full border py-2 rounded cursor-pointer"
->
-  Cancel
-</button>
-                  </div>
-                </div>
-              )}
+      {pinError && (
+        <p className="text-red-500 text-sm mb-3 text-center">
+          {pinError}
+        </p>
+      )}
+
+      <button
+        onClick={verifyPin}
+        className="w-full bg-black text-white py-2 rounded cursor-pointer"
+      >
+        Verify
+      </button>
+
+      <button
+        onClick={() => {
+          setShowPinPopup(false);
+          setPin("");
+          setPinError("");
+          setPendingSubmit(false);
+        }}
+        className="mt-2 w-full border py-2 rounded cursor-pointer"
+      >
+        Cancel
+      </button>
+
+    </div>
+  </div>
+)}
 
           </div>
         </div>
