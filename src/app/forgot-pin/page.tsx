@@ -3,9 +3,9 @@ import ForgotPin from '../components/ForgotPin';
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Login | Bombay Blokes Predictions",
+  title: "Forgot PIN | Bombay Blokes Predictions",
   description:
-    "Login to the Bombay Blokes prediction platform to participate in daily office predictions and compete on the leaderboard.",
+    "Recover your Bombay Blokes Predictions account PIN. Enter your registered email to receive your login PIN and access the prediction platform.",
 };
 const Index = () => {
   return (
