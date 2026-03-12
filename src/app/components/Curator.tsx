@@ -249,7 +249,7 @@ const saveAnswers = async () => {
       onClick={() => (window.location.href = "/leaderboard")}
     />
 
-    <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
   
   </div>
 </section>
@@ -285,7 +285,7 @@ const saveAnswers = async () => {
         )}
 
         {/* Right yellow stripe preserved */}
-        <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+        <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
       
       {/* QUESTION BOX */}
 

@@ -2,20 +2,20 @@ import { NextResponse } from "next/server"
 
 export async function POST(req: Request) {
 
-const { email, name, assignDate } = await req.json()
+  const { email, name, assignDate } = await req.json()
 
-const d = new Date(assignDate)
+  const d = new Date(assignDate)
 
-// format assigned date
-const formattedDate = `${String(d.getDate()).padStart(2,"0")}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getFullYear()).slice(-2)}`
+  // format assigned date
+  const formattedDate = `${String(d.getDate()).padStart(2, "0")}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getFullYear()).slice(-2)}`
 
-// previous day
-const prev = new Date(d)
-prev.setDate(prev.getDate() - 1)
+  // previous day
+  const prev = new Date(d)
+  prev.setDate(prev.getDate() - 1)
 
-const prevFormatted = `${String(prev.getDate()).padStart(2,"0")}-${String(prev.getMonth()+1).padStart(2,"0")}-${String(prev.getFullYear()).slice(-2)}`
+  const prevFormatted = `${String(prev.getDate()).padStart(2, "0")}-${String(prev.getMonth() + 1).padStart(2, "0")}-${String(prev.getFullYear()).slice(-2)}`
 
-try {
+  try {
 
     const res = await fetch("https://api.onesignal.com/notifications", {
       method: "POST",
@@ -29,7 +29,7 @@ try {
         email_subject: "Your turn to add a question 🎯",
 
         email_body: `
-<h2>Hey ${name}</h2>
+<h2>Hey ${name},</h2>
 
 <p>You have been assigned as the curator for <b>${formattedDate}</b>.</p>
 
@@ -41,10 +41,10 @@ try {
 style="
 display:inline-block;
 padding:12px 24px;
-background:#facc15;
+background:#fab31e;
 color:black;
 text-decoration:none;
-border-radius:6px;
+border-radius:20px;
 font-weight:600;
 ">
 Go To Curator Page

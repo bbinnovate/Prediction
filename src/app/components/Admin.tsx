@@ -13,11 +13,19 @@ import interactionPlugin from "@fullcalendar/interaction";
 import { deleteDoc } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
 import Button from "./Button";
-
+type User = {
+  id: string
+  name?: string
+  email?: string
+  role?: string
+  score?: number
+  pin?: string
+  createdAt?: any
+}
 export default function Admin() {
   const router = useRouter();
 
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedUser, setSelectedUser] = useState("");
@@ -60,16 +68,17 @@ useEffect(() => {
 
     /* LOAD USERS */
 
-    const q = query(collection(db, "users"), orderBy("score", "desc"));
-    const usersSnap = await getDocs(q);
+const q = query(collection(db, "users"), orderBy("score", "desc"));
 
-    setUsers(
-      usersSnap.docs.map((d) => ({
-        id: d.id,
-        ...d.data(),
-      })),
-    );
+const usersSnap = await getDocs(q);
 
+const loadedUsers: User[] = usersSnap.docs.map(d => ({
+  id: d.id,
+  ...(d.data() as Omit<User, "id">)
+}));
+
+
+setUsers(loadedUsers.filter(u => u.name && u.email));
     /* LOAD ASSIGNMENTS */
 
     const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
@@ -213,6 +222,29 @@ const removeAssignment = async (eventInfo: any) => {
     );
   };
 
+
+  const resetAllScores = async () => {
+  if (!confirm("Reset ALL user scores to 0?")) return;
+
+  try {
+    const snap = await getDocs(collection(db, "users"));
+
+    const promises = snap.docs.map((d) =>
+      setDoc(doc(db, "users", d.id), { score: 0 }, { merge: true })
+    );
+
+    await Promise.all(promises);
+
+    // update UI immediately
+    setUsers((prev) => prev.map((u) => ({ ...u, score: 0 })));
+
+    alert("All scores reset to 0");
+  } catch (err) {
+    console.error("RESET ERROR:", err);
+    alert("Failed to reset scores");
+  }
+};
+
   return (
     <div className=" container w-full min-h-screen p-10">
       {/* <h1 className="text-3xl font-semibold mb-8 lg:mt-40">Curator Calendar</h1> */}
@@ -350,6 +382,14 @@ const removeAssignment = async (eventInfo: any) => {
 )} */}
 
       {/* ---------------- USER TABLE ---------------- */}
+      <div className="flex justify-end mb-4">
+  <button
+    onClick={resetAllScores}
+    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+  >
+    Reset All Scores
+  </button>
+</div>
 
       <div className="overflow-x-auto border rounded-[20px] shadow">
         <table className="min-w-full divide-y divide-gray-200 text-sm">

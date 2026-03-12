@@ -3,6 +3,10 @@ export function calculateScore(votes: any, answers: any) {
   let correct = 0;
 
   Object.keys(answers).forEach((q) => {
+
+    // user did not answer → ignore
+    if (votes[q] === undefined || votes[q] === "") return;
+
     const userAns = String(votes[q]).trim().toLowerCase();
     const correctAns = String(answers[q]).trim().toLowerCase();
 
@@ -12,6 +16,7 @@ export function calculateScore(votes: any, answers: any) {
     } else {
       score -= 1;
     }
+
   });
 
   // bonus if all 4 correct

@@ -127,29 +127,20 @@ const loadQuestions = async () => {
   const q = query(
     collection(db, "questions"),
     orderBy("createdAt", "desc"),
-    limit(20)
+    limit(4)
   );
 
   const snap = await getDocs(q);
 
-  const data = snap.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  })) as Question[];
+  const data = snap.docs
+    .map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }))
+    .reverse() as Question[];
 
-  const seen = new Set<string>();
-  const uniqueQuestions: Question[] = [];
-
-  for (const q of data) {
-    if (!seen.has(q.question)) {
-      seen.add(q.question);
-      uniqueQuestions.push(q);
-    }
-  }
-
-  setQuestions(uniqueQuestions.slice(0, 4));
+  setQuestions(data);
 };
-
   loadQuestions();
 }, [checkingRole, checkingVote, role, finished]);
 
@@ -541,8 +532,7 @@ const startQuiz = async () => {
     <p className="text-gray-300 text-lg">
       Come back later!
     </p>
-
-    <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+<div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
 
   </div>
 </section>
@@ -552,7 +542,7 @@ const startQuiz = async () => {
 
   if (checkingRole) {
     return (
-      <section className="h-screen flex items-center justify-center">
+      <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
         <p className="black-text">Loading...</p>
       </section>
     );
@@ -574,7 +564,7 @@ const startQuiz = async () => {
       Better luck tomorrow!
     </p>
 
-    <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+     <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
 
   </div>
 </section>
@@ -596,7 +586,7 @@ const startQuiz = async () => {
 //           <p className="text-gray-300 text-lg">
 //             Each user can vote only once per day.
 //           </p>
-//           <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+//          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
 //         </div>
 //       </section>
 //   );
@@ -614,7 +604,7 @@ const startQuiz = async () => {
             Results will appear on the leaderboard soon.
           </p>
 
-          <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+           <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
         </div>
       </section>
     );
@@ -633,10 +623,10 @@ const startQuiz = async () => {
   return (
     <section
       id="second-section"
-      className="container py-20 sm:py-15 lg:py-20 lg:pt-40 pt-50"
+      className="container h-screen flex items-center justify-center py-20 sm:py-15 lg:py-20 "
     >
-      <div className="bg-[#1D1D1D] rounded-[20px] relative overflow-hidden px-6 py-8">
-        <div className="max-w-3xl mx-auto text-center mb-6">
+      <div className="max-w-full w-full container bg-[#1D1D1D] rounded-[20px] relative overflow-hidden px-6 py-8">
+        <div className="max-w-3xl mx-auto text-center lg:mb-6 mb-3">
           {quizStarted && (
             <>
               <h2 className="text-3xl font-medium text-white">
@@ -693,10 +683,12 @@ const startQuiz = async () => {
         </div>
 
         <div className="max-w-3xl mx-auto">
-          <div className="py-5">
+          <div className="lg:py-5 py-1">
             {!quizStarted ? (
               <div className="flex flex-col items-center justify-center ">
-                <h3 className="text-xl text-white">Ready to start the predictions?</h3>
+                <h3 className="text-xl text-white text-center w-full">
+  Ready to start the predictions?
+</h3>
                 
                 <div className="my-6 text-center">
                   <p className="text-[#fab31e] font-bold text-5xl mb-2">{globalTimeLeft}</p>
@@ -715,12 +707,27 @@ const startQuiz = async () => {
               <>
                 {step < totalSteps && current && (
                   <>
-                    <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-xl text-white">{current.question}</h3>
-                      <div className={`text-lg font-bold px-3 py-1 rounded-full ${timeLeft <= 3 ? 'text-red-500 bg-red-500/10' : 'text-highlight bg-highlight/10'}`}>
-                        00:{timeLeft.toString().padStart(2, '0')}
-                      </div>
-                    </div>
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-2">
+
+  {/* TIMER - right side on mobile and desktop */}
+  <div className="flex justify-end w-full sm:w-auto order-1 sm:order-2">
+    <div
+      className={`text-lg font-bold px-3 py-1 rounded-full ${
+        timeLeft <= 3
+          ? "text-red-500 bg-red-500/10"
+          : "text-highlight bg-highlight/10"
+      }`}
+    >
+      00:{timeLeft.toString().padStart(2, "0")}
+    </div>
+  </div>
+
+  {/* QUESTION */}
+  <h3 className="text-xl text-white text-left order-2 sm:order-1">
+    {current.question}
+  </h3>
+
+</div>
 
                     <div className="flex flex-wrap items-center gap-6">
                       <button
@@ -806,7 +813,8 @@ const startQuiz = async () => {
           </div>
         </div>
 
-        <div className="absolute right-0 top-0 h-full w-3 sm:w-5 md:w-5 candy-border"></div>
+
+        <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
       </div>
     </section>
   );

@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-
+import { Coins } from "lucide-react";
 const avatars = [
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
@@ -41,7 +41,7 @@ export default function Leaderboard() {
   });
 
 const data = snap.docs
-.filter(d => d.data()?.name) 
+.filter(d => d.data()?.name && d.data()?.email)
 .map((d, i) => {
     const uid = d.id;
 
@@ -119,7 +119,7 @@ for (let i = 0; i < 5; i++) {
 });
 
   return (
-    <div className="container min-h-[calc(100vh-160px)] pt-32 pb-16">
+    <div className="container min-h-[calc(100vh-160px)] pt-28 pb-16">
       {/* TITLE */}
 
       {/* TOP 3 dextop */}
@@ -296,7 +296,15 @@ for (let i = 0; i < 5; i++) {
   {/* <td className="p-4 text-gray-700">
     {u.weekly?.join("  |  ") || "0/4 | 0/4 | 0/4 | 0/4 | 0/4"}
   </td> */}
-  <td className="p-4 font-bold text-[#fab31e]">{u.score || 0}</td>
+<td className="p-4 font-bold text-[#fab31e]">
+<div className="flex items-center gap-2 text-[#fab31e] font-bold">
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+    className="w-4 h-4"
+  />
+  {u.score || 0}
+</div>
+</td>
 
 </tr>
   ))}
@@ -323,7 +331,13 @@ for (let i = 0; i < 5; i++) {
               </div>
             </div>
 
-            <div className="font-bold text-[#fab31e]">{u.score || 0}</div>
+            <div className="flex items-center gap-2 font-bold text-[#fab31e]">
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+    className="w-4 h-4"
+  />
+  {u.score || 0}
+</div>
           </div>
         ))}
       </div>
