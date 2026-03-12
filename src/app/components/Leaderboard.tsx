@@ -328,7 +328,7 @@ for (let i = 0; i < 5; i++) {
    <tr key={u.id} className="border-t hover:bg-gray-50">
   <td className="p-4 font-semibold">#{i + 1}</td>
 
-  <td className="p-4 flex items-center gap-3">
+  <td className="p-4 flex items-center gap-3 capitalize">
     <img src={u.avatar} className="w-8 h-8 rounded-full" />
     {u.name}
   </td>
@@ -368,7 +368,7 @@ for (let i = 0; i < 5; i++) {
               <img src={u.avatar} className="w-10 h-10 rounded-full" />
 
               <div>
-                <p className="font-medium">{u.name}</p>
+                <p className="font-medium capitalize">{u.name}</p>
                 <p className="text-xs text-gray-500">{u.email}</p>
               </div>
             </div>

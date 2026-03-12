@@ -289,22 +289,22 @@ if (timeLeft === 0) {
 }, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
 // Time window check
-// useEffect(() => {
-//   const now = new Date();
-//   const hour = now.getHours();
-//   const minute = now.getMinutes();
+useEffect(() => {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
 
-//   // 12 AM → 6 AM
-//   if (hour < 6) {
-//     setNotStarted(true);
-//     return;
-//   }
+  // 12 AM → 6 AM
+  if (hour < 6) {
+    setNotStarted(true);
+    return;
+  }
 
-//   // 10:30 AM → 12 AM
-//   if (hour > 10 || (hour === 10 && minute > 30)) {
-//     setTimeExpired(true);
-//   }
-// }, []);
+  // 10:30 AM → 12 AM
+  if (hour > 10 || (hour === 10 && minute > 30)) {
+    setTimeExpired(true);
+  }
+}, []);
 
   const hasVotedToday = async (uid: unknown) => {
   const start = new Date();
@@ -729,7 +729,7 @@ const startQuiz = async () => {
                   {/* <p className="text-gray-300 text-lg">Time is going, answer the questions fast!</p> */}
                 </div>
 
-                <p className="text-gray-400 ">You will have 10 seconds per question.</p>
+                <p className="text-gray-400 text-center">You will have 10 seconds per question.</p>
                 <Button 
                   text="Start Prediction" 
                   onClick={startQuiz}  
