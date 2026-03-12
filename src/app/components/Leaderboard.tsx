@@ -146,7 +146,11 @@ for (let i = 0; i < 5; i++) {
             <p className="font-semibold text-lg">{top3[1].name}</p>
             <p className="text-gray-500 text-sm">{top3[1].email}</p>
 
-            <p className="mt-3 text-[#fab31e] font-bold text-xl">
+            <p className="mt-3 flex items-center justify-center gap-2 text-[#fab31e] font-bold text-xl">
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+    className="w-5 h-5"
+  />
               {top3[1].score || 0}
             </p>
           </motion.div>
@@ -170,7 +174,11 @@ for (let i = 0; i < 5; i++) {
             <p className="text-xl font-bold">{top3[0].name}</p>
             <p className="text-sm opacity-90">{top3[0].email}</p>
 
-            <p className="mt-4 text-2xl font-bold">{top3[0].score || 0}</p>
+            <p className="mt-3 flex items-center justify-center gap-2 text-white font-bold text-xl">
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+    className="w-5 h-5"
+  />{top3[0].score || 0}</p>
           </motion.div>
         )}
 
@@ -192,7 +200,11 @@ for (let i = 0; i < 5; i++) {
             <p className="font-semibold text-lg">{top3[2].name}</p>
             <p className="text-gray-500 text-sm">{top3[2].email}</p>
 
-            <p className="mt-3 text-[#fab31e] font-bold text-xl">
+            <p className="mt-3 flex items-center justify-center gap-2 text-[#fab31e] font-bold text-xl">
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+    className="w-5 h-5"
+  />
               {top3[2].score || 0}
             </p>
           </motion.div>
@@ -201,12 +213,12 @@ for (let i = 0; i < 5; i++) {
 
       {/* TOP 3 PODIUM mobile */}
 
-    <div className="md:hidden flex justify-center items-end gap-10 mb-15 mt-20">
+<div className="md:hidden flex justify-center items-end gap-6 mb-12 mt-16">
 
   {/* SECOND */}
   {top3[1] && (
-    <div className="flex flex-col items-center translate-y-6">
-      
+    <div className="flex flex-col items-center translate-y-4 w-[90px] text-center">
+
       <div className="relative">
         <img
           src={top3[1].avatar}
@@ -218,16 +230,26 @@ for (let i = 0; i < 5; i++) {
         </div>
       </div>
 
-      <p className="text-sm font-semibold mt-2">{top3[1].name}</p>
-      <p className="text-xs text-gray-500">{top3[1].score} points</p>
+      <p className="text-xs font-semibold mt-2 truncate w-full">
+        {top3[1].name}
+      </p>
+
+      <p className="flex items-center justify-center gap-1 text-xs text-[#fab31e] font-semibold">
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+          className="w-3.5 h-3.5"
+        />
+        {top3[1].score || 0}
+      </p>
+
     </div>
   )}
 
   {/* FIRST */}
   {top3[0] && (
-    <div className="flex flex-col items-center -mt-15">
+    <div className="flex flex-col items-center -mt-10 w-[100px] text-center">
 
-      <div className="text-2xl ">👑</div>
+      <div className="text-xl mb-1">👑</div>
 
       <div className="relative">
         <img
@@ -240,14 +262,24 @@ for (let i = 0; i < 5; i++) {
         </div>
       </div>
 
-      <p className="font-bold mt-2">{top3[0].name}</p>
-      <p className="text-sm text-gray-500">{top3[0].score} points</p>
+      <p className="text-sm font-bold mt-2 truncate w-full">
+        {top3[0].name}
+      </p>
+
+      <p className="flex items-center justify-center gap-1 text-xs text-[#fab31e] font-semibold">
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+          className="w-3.5 h-3.5"
+        />
+        {top3[0].score || 0}
+      </p>
+
     </div>
   )}
 
   {/* THIRD */}
   {top3[2] && (
-    <div className="flex flex-col items-center translate-y-6">
+    <div className="flex flex-col items-center translate-y-4 w-[90px] text-center">
 
       <div className="relative">
         <img
@@ -260,8 +292,18 @@ for (let i = 0; i < 5; i++) {
         </div>
       </div>
 
-      <p className="text-sm font-semibold mt-2">{top3[2].name}</p>
-      <p className="text-xs text-gray-500">{top3[2].score} points</p>
+      <p className="text-xs font-semibold mt-2 truncate w-full">
+        {top3[2].name}
+      </p>
+
+      <p className="flex items-center justify-center gap-1 text-xs text-[#fab31e] font-semibold">
+        <img
+          src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+          className="w-3.5 h-3.5"
+        />
+        {top3[2].score || 0}
+      </p>
+
     </div>
   )}
 

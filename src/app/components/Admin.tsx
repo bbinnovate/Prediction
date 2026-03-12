@@ -479,7 +479,16 @@ const removeAssignment = async (eventInfo: any) => {
                     </select>
                   </td>
 
-                  <td className="px-6 py-3 font-semibold">{user.score || 0}</td>
+
+                  <td className="p-4 font-bold text-[#fab31e]">
+<div className="flex items-center gap-2 text-[#fab31e] font-bold">
+  <img
+    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+    className="w-4 h-4"
+  />
+  {user.score || 0}
+</div>
+</td>
                   <td className="px-6 py-3">
                     <UserPinDisplay pin={user.pin} />
                   </td>
