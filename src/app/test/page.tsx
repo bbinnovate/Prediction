@@ -201,38 +201,70 @@ export default function LandingPage() {
   }, []);
 
 useEffect(() => {
-if (!finished) return;
+  if (!finished) return;
 
-shootBottomSideConfetti();
+  shootBottomSideConfetti();
 
-const audio = new Audio("/ConfettiSound.mp3");
-audio.preload = "auto";
-audio.volume = 0.04; // lower volume
+  let audioBuffer: AudioBuffer | null = null;
+  let gainNode: GainNode | null = null;
+  let sourceNode: AudioBufferSourceNode | null = null;
+  let audioCtx: AudioContext | null = null;
 
-const playSound = () => {
-audio.play().catch(() => {
-const unlock = () => {
-audio.play().catch(() => {});
-document.removeEventListener("touchstart", unlock);
-document.removeEventListener("click", unlock);
-};
+  const setupAudio = async () => {
+    audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
+    const response = await fetch("/ConfettiSound.mp3");
+    const arrayBuffer = await response.arrayBuffer();
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-  document.addEventListener("touchstart", unlock, { once: true });
-  document.addEventListener("click", unlock, { once: true });
-});
+    gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.04; // volume control that works on iOS
 
+    gainNode.connect(audioCtx.destination);
+  };
 
-};
+  const playSound = async () => {
+    if (!audioCtx || !audioBuffer || !gainNode) return;
 
-playSound();
+    // iOS requires AudioContext to be resumed after a user gesture
+    if (audioCtx.state === "suspended") {
+      await audioCtx.resume();
+    }
 
-const stopTimer = setTimeout(() => {
-audio.pause();
-audio.currentTime = 0;
-}, 5000);
+    sourceNode = audioCtx.createBufferSource();
+    sourceNode.buffer = audioBuffer;
+    sourceNode.connect(gainNode);
+    sourceNode.start(0);
+  };
 
-return () => clearTimeout(stopTimer);
+  const initAndPlay = async () => {
+    await setupAudio();
+    await playSound();
+  };
+
+  // Try playing immediately (works if user already interacted)
+  initAndPlay().catch(() => {
+    // iOS blocked autoplay — wait for user gesture
+    const unlock = async () => {
+      await initAndPlay().catch(() => {});
+      document.removeEventListener("touchstart", unlock);
+      document.removeEventListener("click", unlock);
+    };
+
+    document.addEventListener("touchstart", unlock, { once: true });
+    document.addEventListener("click", unlock, { once: true });
+  });
+
+  const stopTimer = setTimeout(() => {
+    sourceNode?.stop();
+    audioCtx?.close();
+  }, 5000);
+
+  return () => {
+    clearTimeout(stopTimer);
+    sourceNode?.stop();
+    audioCtx?.close();
+  };
 }, [finished]);
 
 
