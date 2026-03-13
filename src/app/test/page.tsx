@@ -14,9 +14,9 @@ import {
 } from "firebase/firestore";
 import { updateLeaderboard } from "@/lib/updateLeaderboard";
 import { db, auth } from "@/lib/firebase";
-import Button from "./Button";
+import Button from "../components/Button";
 import { Eye, EyeOff } from "lucide-react"
-import PredictionButton from "./PredictionButton";
+import PredictionButton from "../components/PredictionButton";
 
 type Question = {
   id: string
@@ -290,53 +290,53 @@ if (timeLeft === 0) {
 }, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
 // Time window check
-useEffect(() => {
-  const checkTimeAndVote = async () => {
+// useEffect(() => {
+//   const checkTimeAndVote = async () => {
 
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
+//     const now = new Date();
+//     const hour = now.getHours();
+//     const minute = now.getMinutes();
 
-    // BEFORE 6 AM
-    if (hour < 6) {
-      setNotStarted(true);
-      return;
-    }
+//     // BEFORE 6 AM
+//     if (hour < 6) {
+//       setNotStarted(true);
+//       return;
+//     }
 
-    // AFTER 10:30 AM
-    if (hour > 10 || (hour === 10 && minute >= 30)) {
+//     // AFTER 10:30 AM
+//     if (hour > 10 || (hour === 10 && minute >= 30)) {
 
-      let uid: any = null;
+//       let uid: any = null;
 
-      const user = auth.currentUser;
-      if (user) uid = user.uid;
+//       const user = auth.currentUser;
+//       if (user) uid = user.uid;
 
-      const pinUser = localStorage.getItem("pinUser");
-      if (!uid && pinUser) {
-        uid = JSON.parse(pinUser).uid;
-      }
+//       const pinUser = localStorage.getItem("pinUser");
+//       if (!uid && pinUser) {
+//         uid = JSON.parse(pinUser).uid;
+//       }
 
-      if (uid) {
+//       if (uid) {
 
-        const voted = await hasVotedToday(uid);
+//         const voted = await hasVotedToday(uid);
 
-        if (voted) {
-          setAlreadyVotedError(true);
-        } else {
-          setTimeExpired(true);
-        }
+//         if (voted) {
+//           setAlreadyVotedError(true);
+//         } else {
+//           setTimeExpired(true);
+//         }
 
-      } else {
-        setTimeExpired(true);
-      }
+//       } else {
+//         setTimeExpired(true);
+//       }
 
-      return;
-    }
+//       return;
+//     }
 
-  };
+//   };
 
-  checkTimeAndVote();
-}, []);
+//   checkTimeAndVote();
+// }, []);
 
   const hasVotedToday = async (uid: unknown) => {
   const start = new Date();
@@ -639,24 +639,24 @@ const startQuiz = async () => {
 }
 
 
-  if (alreadyVotedError) {
-  return (
+//   if (alreadyVotedError) {
+//   return (
   
 
-<section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
-        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-          <h2 className="text-4xl text-red-400 mb-4">
-          You Already Voted Today
-        </h2>
+// <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+//         <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+//           <h2 className="text-4xl text-red-400 mb-4">
+//           You Already Voted Today
+//         </h2>
 
-          <p className="text-gray-300 text-lg">
-            Each user can vote only once per day.
-          </p>
-         <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-        </div>
-      </section>
-  );
-}
+//           <p className="text-gray-300 text-lg">
+//             Each user can vote only once per day.
+//           </p>
+//          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+//         </div>
+//       </section>
+//   );
+// }
 
   if (finished) {
     return (
@@ -797,7 +797,7 @@ break-words whitespace-normal leading-relaxed max-w-2xl">
 
 </div>
 
-                    <div className="flex flex-wrap items-center gap-6">
+                    {/* <div className="flex flex-wrap items-center gap-6">
                       <button
                         onClick={() => selectAnswer(current.id, "yes")}
                         className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition  ${
@@ -821,7 +821,7 @@ break-words whitespace-normal leading-relaxed max-w-2xl">
                       </button>
 
                     
-                    </div>
+                    </div> */}
 
                     <PredictionButton
   onYes={() => selectAnswer(current.id, "yes")}
