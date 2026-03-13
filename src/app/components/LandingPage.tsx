@@ -749,7 +749,7 @@ const startQuiz = async () => {
         </div>
 
         <div className="max-w-3xl mx-auto">
-          <div className="lg:py-5 py-1">
+          <div className="lg:py-0 py-1 lg:mb-5 mb-0 ">
             {!quizStarted ? (
               <div className="flex flex-col items-center justify-center ">
                 <h3 className="text-xl text-white text-center w-full">

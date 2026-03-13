@@ -243,51 +243,7 @@ useEffect(() => {
 }, []);
 
 // Quiz timer effect
-useEffect(() => {
-  if (!quizStarted || finished || step >= totalSteps) return;
 
-if (timeLeft === 0) {
-  const qid = questions[step].id;
-
-  const updatedAnswers = {
-    ...answers,
-    [qid]: "",
-  };
-
-  setAnswers(updatedAnswers);
-
-  const isLastQuestion = step === totalSteps - 1;
-
-  if (isLastQuestion) {
-
-    let uid: any = null;
-
-    const user = auth.currentUser;
-    if (user) uid = user.uid;
-
-    const pinUser = localStorage.getItem("pinUser");
-    if (!uid && pinUser) {
-      uid = JSON.parse(pinUser).uid;
-    }
-
-    if (uid) {
-       submitVotes(uid);
-    }
-
-    return;
-  }
-
-  handleAutoAdvance();
-  return;
-}
-
-  const timer = setInterval(() => {
-    setTimeLeft((prev) => Math.max(0, prev - 1));
-  }, 1000);
-
-  return () => clearInterval(timer);
-
-}, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
 // Time window check
 // useEffect(() => {
@@ -591,7 +547,7 @@ const startQuiz = async () => {
 <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
   <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
 
-    <h2 className="text-4xl text-yellow-400 mb-4">
+    <h2 className="text-4xl text-[#FAB31E] mb-4">
       Voting starts at 6:00 AM ⏰
     </h2>
 
@@ -749,7 +705,7 @@ const startQuiz = async () => {
         </div>
 
         <div className="max-w-3xl mx-auto">
-          <div className="lg:py-5 py-1">
+          <div className="lg:py-0 py-1 lg:mb-5 mb-0">
             {!quizStarted ? (
               <div className="flex flex-col items-center justify-center ">
                 <h3 className="text-xl text-white text-center w-full">
@@ -776,17 +732,7 @@ const startQuiz = async () => {
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-2">
 
   {/* TIMER - right side on mobile and desktop */}
-  <div className="flex justify-end w-full sm:w-auto order-1 sm:order-2">
-    <div
-      className={`text-lg font-bold px-3 py-1 rounded-full ${
-        timeLeft <= 3
-          ? "text-red-500 bg-red-500/10"
-          : "text-highlight bg-highlight/10"
-      }`}
-    >
-      00:{timeLeft.toString().padStart(2, "0")}
-    </div>
-  </div>
+
 
   {/* QUESTION */}
 <h3 className="text-white text-left order-2 sm:order-1 

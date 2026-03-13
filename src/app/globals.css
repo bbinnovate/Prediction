@@ -479,3 +479,31 @@ animation:fadeSlide .4s ease;
   padding: 2px 4px;
   font-size: 13px;
 }
+
+
+/* animtion button  */
+@keyframes arrowLeft {
+  0% { transform: translateX(0); opacity: .5; }
+  50% { transform: translateX(-6px); opacity: 1; }
+  100% { transform: translateX(0); opacity: .5; }
+}
+
+@keyframes arrowRight {
+  0% { transform: translateX(0); opacity: .5; }
+  50% { transform: translateX(6px); opacity: 1; }
+  100% { transform: translateX(0); opacity: .5; }
+}
+
+.animate-arrow-left {
+  animation: arrowLeft 1s infinite ease-in-out;
+}
+
+.animate-arrow-right {
+  animation: arrowRight 1s infinite ease-in-out;
+}
+
+/* pause animation on hover */
+.slider-hover:hover .animate-arrow-left,
+.slider-hover:hover .animate-arrow-right {
+  animation-play-state: paused;
+}
