@@ -466,13 +466,13 @@ const removeAssignment = async (eventInfo: any) => {
                   <td className="px-6 py-3">{user.email}</td>
                   <td className="px-6 py-3">{joinedDate}</td>
 
-                  <td className="px-6 py-3">
+                  <td className="px-6 py-3 ">
                     <select
                       value={user.role}
                       onChange={(e) =>
                         handleRoleChange(user.id, e.target.value)
                       }
-                      className="border rounded px-2 py-1 capitalize"
+                      className="border rounded px-2 py-1 capitalize cursor-pointer"
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>
@@ -505,7 +505,7 @@ const removeAssignment = async (eventInfo: any) => {
                   <td className="px-6 py-3 text-right">
                     <button
                       onClick={() => handleDelete(user.id)}
-                      className="text-red-600 hover:underline"
+                      className="text-red-600 hover:underline cursor-pointer"
                     >
                       Delete
                     </button>

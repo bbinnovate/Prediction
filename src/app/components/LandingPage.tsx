@@ -290,20 +290,51 @@ if (timeLeft === 0) {
 
 // Time window check
 useEffect(() => {
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+  const checkTimeAndVote = async () => {
 
-  // 12 AM → 6 AM
-  if (hour < 6) {
-    setNotStarted(true);
-    return;
-  }
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
 
-  // 10:30 AM → 12 AM
-  if (hour > 10 || (hour === 10 && minute > 30)) {
-    setTimeExpired(true);
-  }
+    // BEFORE 6 AM
+    if (hour < 6) {
+      setNotStarted(true);
+      return;
+    }
+
+    // AFTER 10:30 AM
+    if (hour > 10 || (hour === 10 && minute >= 30)) {
+
+      let uid: any = null;
+
+      const user = auth.currentUser;
+      if (user) uid = user.uid;
+
+      const pinUser = localStorage.getItem("pinUser");
+      if (!uid && pinUser) {
+        uid = JSON.parse(pinUser).uid;
+      }
+
+      if (uid) {
+
+        const voted = await hasVotedToday(uid);
+
+        if (voted) {
+          setAlreadyVotedError(true);
+        } else {
+          setTimeExpired(true);
+        }
+
+      } else {
+        setTimeExpired(true);
+      }
+
+      return;
+    }
+
+  };
+
+  checkTimeAndVote();
 }, []);
 
   const hasVotedToday = async (uid: unknown) => {
@@ -593,7 +624,7 @@ const startQuiz = async () => {
     </h2>
 
     <p className="text-gray-300 text-lg">
-      Voting closes at <b>10:00 AM</b>.
+      Voting closes at <b>10:30 AM</b>.
       <br />
       Better luck tomorrow!
     </p>
@@ -757,16 +788,18 @@ const startQuiz = async () => {
   </div>
 
   {/* QUESTION */}
-  <h3 className="text-xl text-white text-left order-2 sm:order-1">
-    {current.question}
-  </h3>
+<h3 className="text-white text-left order-2 sm:order-1 
+text-lg sm:text-xl md:text-2xl 
+break-words whitespace-normal leading-relaxed max-w-2xl">
+  {current.question}
+</h3>
 
 </div>
 
                     <div className="flex flex-wrap items-center gap-6">
                       <button
                         onClick={() => selectAnswer(current.id, "yes")}
-                        className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+                        className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition  ${
                           answers[current.id] === "yes"
                             ? "bg-[#fab31e] text-black"
                             : "text-white hover:bg-[#fab31e] hover:text-black"
@@ -777,7 +810,7 @@ const startQuiz = async () => {
 
                       <button
                         onClick={() => selectAnswer(current.id, "no")}
-                        className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+                        className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
                           answers[current.id] === "no"
                             ? "bg-[#fab31e] text-black"
                             : "text-white hover:bg-[#fab31e] hover:text-black"

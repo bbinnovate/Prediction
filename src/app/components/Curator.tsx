@@ -312,7 +312,7 @@ const saveAnswers = async () => {
              <div className="flex gap-4">
   <button
     onClick={() => setAnswer(q.id, "yes")}
-    className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+    className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
       answers[q.id] === "yes"
         ? "bg-[#fab31e] text-black"
         : "text-white hover:bg-[#fab31e] hover:text-black"
@@ -323,7 +323,7 @@ const saveAnswers = async () => {
 
   <button
     onClick={() => setAnswer(q.id, "no")}
-    className={`px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+    className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
       answers[q.id] === "no"
         ? "bg-[#fab31e] text-black"
         : "text-white hover:bg-[#fab31e] hover:text-black"

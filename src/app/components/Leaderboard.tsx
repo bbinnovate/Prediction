@@ -127,14 +127,14 @@ for (let i = 0; i < 5; i++) {
   <h2 className="text-3xl font-bold">🏆 Highest Scores</h2>
   <p className="text-gray-500 mt-1">{today}</p>
 </div>
-      <div className=" hidden md:flex flex flex-col md:flex-row justify-center items-end gap-6 mb-20">
-        {/* SECOND */}
+
+<div className="hidden md:flex flex-col md:flex-row justify-center items-end gap-6 mb-20 w-full max-w-5xl mx-auto">        {/* SECOND */}
 
         {top3[1] && (
           <motion.div
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-white shadow-xl rounded-xl p-6 w-60 text-center border"
+            className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center border flex-shrink-0"
           >
             <div className="text-3xl mb-2">🥈</div>
 
@@ -162,9 +162,8 @@ for (let i = 0; i < 5; i++) {
           <motion.div
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-[#fab31e] text-white shadow-2xl rounded-xl p-8 w-72 text-center"
-          >
-            <div className="text-4xl mb-2">👑</div>
+className="bg-[#fab31e] text-white shadow-2xl rounded-[20px] p-8 w-[55%] md:w-80 text-center flex-shrink-0"          >
+            <div className="text-4xl ">👑</div>
 
             <img
               src={top3[0].avatar}
@@ -188,8 +187,7 @@ for (let i = 0; i < 5; i++) {
           <motion.div
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-white shadow-xl rounded-xl p-6 w-60 text-center border"
-          >
+className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center border flex-shrink-0"          >
             <div className="text-3xl mb-2">🥉</div>
 
             <img
@@ -249,7 +247,7 @@ for (let i = 0; i < 5; i++) {
   {top3[0] && (
     <div className="flex flex-col items-center -mt-10 w-[100px] text-center">
 
-      <div className="text-xl mb-1">👑</div>
+      <div className="text-3xl ">👑</div>
 
       <div className="relative">
         <img
@@ -311,7 +309,7 @@ for (let i = 0; i < 5; i++) {
 
       {/* DESKTOP TABLE */}
 
-      <div className="hidden md:block overflow-x-auto bg-white shadow-lg rounded-xl">
+      <div className="hidden md:block overflow-x-auto bg-white shadow-lg rounded-[20px]">
         <table className="w-full text-left">
           <thead className="bg-[#fab31e] text-white">
             <tr>
@@ -360,7 +358,7 @@ for (let i = 0; i < 5; i++) {
         {users.map((u, i) => (
           <div
             key={u.id}
-            className="bg-white shadow rounded-lg p-4 flex justify-between items-center"
+            className="bg-white shadow rounded-[20px] p-4 flex justify-between items-center"
           >
             <div className="flex items-center gap-3">
               <span className="font-semibold">#{i + 1}</span>
@@ -369,7 +367,7 @@ for (let i = 0; i < 5; i++) {
 
               <div>
                 <p className="font-medium capitalize">{u.name}</p>
-                <p className="text-xs text-gray-500">{u.email}</p>
+               <p className="text-[10px] text-gray-500">{u.email}</p>
               </div>
             </div>
 
