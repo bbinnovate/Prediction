@@ -9,6 +9,7 @@ type Props = {
 
 export default function PredictionButton({ onYes, onNo }: Props) {
   const railRef = useRef<HTMLDivElement>(null);
+  const puckRef = useRef<HTMLDivElement>(null);
 
   const [offset, setOffset] = useState(0);
   const [dragging, setDragging] = useState(false);
@@ -16,6 +17,10 @@ export default function PredictionButton({ onYes, onNo }: Props) {
   const startX = useRef(0);
 
   const handlePointerDown = (e: React.PointerEvent) => {
+    if (!puckRef.current) return;
+
+    puckRef.current.setPointerCapture(e.pointerId);
+
     setDragging(true);
     startX.current = e.clientX - offset;
   };
@@ -24,7 +29,7 @@ export default function PredictionButton({ onYes, onNo }: Props) {
     if (!dragging || !railRef.current) return;
 
     const railWidth = railRef.current.offsetWidth;
-    const max = railWidth / 2 - 40; // travel distance
+    const max = railWidth / 2 - 32;
 
     let newOffset = e.clientX - startX.current;
 
@@ -35,9 +40,7 @@ export default function PredictionButton({ onYes, onNo }: Props) {
   };
 
   const resetSlider = () => {
-    setTimeout(() => {
-      setOffset(0);
-    }, 200);
+    setTimeout(() => setOffset(0), 150);
   };
 
   const handlePointerUp = () => {
@@ -63,29 +66,25 @@ export default function PredictionButton({ onYes, onNo }: Props) {
     <div className="flex justify-center w-full">
       <div
         ref={railRef}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={handlePointerUp}
-        className="relative flex items-center justify-between w-full max-w-[360px] h-[56px] px-6 rounded-full bg-[#2a2a2a] text-white select-none overflow-hidden"
+        className="relative flex items-center justify-between w-full max-w-[360px] h-[56px] px-6 rounded-full bg-[#2a2a2a] text-white select-none overflow-hidden touch-none"
       >
-        <span className="text-sm font-semibold tracking-wide opacity-70">
-          NO
-        </span>
+        <span className="text-sm font-semibold opacity-70">NO</span>
 
-        {/* Draggable puck */}
+        {/* Puck */}
         <div
+          ref={puckRef}
           onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
           style={{
             left: `calc(50% + ${offset}px - 24px)`
           }}
-          className="absolute top-1/2 -translate-y-1/2 w-[48px] h-[48px] rounded-full bg-white flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing transition-all duration-300"
+          className="absolute top-1/2 -translate-y-1/2 w-[48px] h-[48px] rounded-full bg-white flex items-center justify-center shadow-lg transition-all duration-200 cursor-grab active:cursor-grabbing"
         >
           👕
         </div>
 
-        <span className="text-sm font-semibold tracking-wide opacity-70">
-          YES
-        </span>
+        <span className="text-sm font-semibold opacity-70">YES</span>
       </div>
     </div>
   );
