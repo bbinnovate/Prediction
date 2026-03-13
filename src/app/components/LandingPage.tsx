@@ -17,6 +17,7 @@ import { db, auth } from "@/lib/firebase";
 import Button from "./Button";
 import { Eye, EyeOff } from "lucide-react"
 import PredictionButton from "./PredictionButton";
+import toast, { Toaster } from "react-hot-toast";
 
 type Question = {
   id: string
@@ -216,7 +217,7 @@ useEffect(() => {
   const stopTimer = setTimeout(() => {
     audio.pause();
     audio.currentTime = 0;
-  }, 10000);
+  }, 5000);
 
   return () => clearTimeout(stopTimer);
 }, [finished]);
@@ -502,7 +503,18 @@ const selectAnswer = async (qid: any, value: any) => {
     [qid]: value,
   };
 
-  setAnswers(updatedAnswers);
+setAnswers(updatedAnswers);
+
+const messages = [
+  "First question answered ✅",
+  "Second question answered ✅",
+  "Third question answered ✅",
+  "All questions answered 🎉"
+];
+
+toast.success(messages[step], {
+  duration: 1500,
+});
 
   const isLastQuestion = step === totalSteps - 1;
 
@@ -691,6 +703,18 @@ const startQuiz = async () => {
       id="second-section"
       className="container h-screen flex items-center justify-center py-20 sm:py-15 lg:py-20 "
     >
+      <Toaster
+  position="top-center"
+  toastOptions={{
+    style: {
+      background: "#1D1D1D",
+      color: "#fff",
+      borderRadius: "10px",
+      padding: "12px 16px",
+      fontSize: "14px",
+    },
+  }}
+/>
       <div className="max-w-full w-full container bg-[#1D1D1D] rounded-[20px] relative overflow-hidden px-6 py-8">
         <div className="max-w-3xl mx-auto text-center lg:mb-6 mb-3">
           {quizStarted && (

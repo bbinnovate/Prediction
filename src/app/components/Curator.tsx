@@ -33,6 +33,11 @@ const month = String(now.getMonth() + 1).padStart(2, "0");
 const day = String(now.getDate()).padStart(2, "0");
 const today = `${year}-${month}-${day}`;
 const currentMinutes = now.getHours() * 60 + now.getMinutes();
+const minutesNow = now.getHours() * 60 + now.getMinutes();
+const answerStart = 10 * 60 + 30; // 10:30 AM
+const answerEnd = 18 * 60; // 6:00 PM
+
+const canAnswer = minutesNow >= answerStart && minutesNow <= answerEnd;
   // LOAD PAGE + PERMISSION CHECK
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (user) => {
@@ -221,6 +226,9 @@ const saveAnswers = async () => {
       return;
     }
 
+
+      setAnswered(true);
+
     await updateDoc(doc(db, "questions", q.id), {
       correctAnswer: ans,
       answeredBy: sessionUid
@@ -241,7 +249,7 @@ const saveAnswers = async () => {
 
   alert("Answers saved");
 
-  setAnswered(true);
+
 };
   if (loading) return  <section className="h-screen flex items-center justify-center">
         <p>Loading questions...</p>
@@ -272,6 +280,33 @@ const saveAnswers = async () => {
     );
   }
 
+  if (!canAnswer && savedQuestions.length > 0) {
+  return (
+<section className="container h-screen flex items-center justify-center">
+  <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+
+    {/* Title */}
+    <h2 className="max-w-4xl mx-auto text-white mb-3 text-2xl font-semibold">
+      Questions Saved
+    </h2>
+
+    {/* Subtitle */}
+    <p className="max-w-3xl mx-auto text-gray-300 mb-6">
+      You can submit the correct answers after <span className="text-[#FAB31E] font-semibold">10:30 AM</span> once voting ends. 
+      Until then, you can still predict the outcomes.
+    </p>
+
+    <Button 
+    text="Predict"
+    href="/" 
+    className=" white-text"/>
+
+    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+
+  </div>
+</section>
+  );
+}
   return (
     <div className=" container min-h-[calc(100vh-160px)] lg:pt-40 pt-30 lg:py-20 md:py-15 py-10 ">
       <h1 className="text-2xl font-bold mb-6">Add 4 Questions</h1>
