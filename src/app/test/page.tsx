@@ -208,15 +208,33 @@ useEffect(() => {
 
   shootBottomSideConfetti();
 
-  const audio = new Audio("/confetti.mp3");
-  audio.volume = 0.1;
+  const audio = new Audio("/ConfettiSound.mp3");
 
-  audio.play().catch(() => {});
+  audio.preload = "auto";
+  audio.volume = 0.05; // lower volume (was 0.1)
+
+  const playSound = async () => {
+    try {
+      await audio.play();
+    } catch {
+      // iOS autoplay restriction fallback
+      const unlock = () => {
+        audio.play().catch(() => {});
+        document.removeEventListener("touchstart", unlock);
+        document.removeEventListener("click", unlock);
+      };
+
+      document.addEventListener("touchstart", unlock, { once: true });
+      document.addEventListener("click", unlock, { once: true });
+    }
+  };
+
+  playSound();
 
   const stopTimer = setTimeout(() => {
     audio.pause();
     audio.currentTime = 0;
-  }, 10000);
+  }, 5000);
 
   return () => clearTimeout(stopTimer);
 }, [finished]);
