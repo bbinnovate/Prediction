@@ -204,40 +204,50 @@ useEffect(() => {
 }, []);
 
 useEffect(() => {
-  if (!finished) return;
+if (!finished) return;
 
-  shootBottomSideConfetti();
+shootBottomSideConfetti();
 
-  const audio = new Audio("/ConfettiSound.mp3");
+const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+const audio = new Audio("/ConfettiSound.mp3");
 
-  audio.preload = "auto";
-  audio.volume = 0.05; // lower volume (was 0.1)
+const track = audioContext.createMediaElementSource(audio);
+const gainNode = audioContext.createGain();
 
-  const playSound = async () => {
-    try {
-      await audio.play();
-    } catch {
-      // iOS autoplay restriction fallback
-      const unlock = () => {
-        audio.play().catch(() => {});
-        document.removeEventListener("touchstart", unlock);
-        document.removeEventListener("click", unlock);
-      };
+gainNode.gain.value = 0.03; // VERY LOW volume (adjust 0.01–0.05)
 
-      document.addEventListener("touchstart", unlock, { once: true });
-      document.addEventListener("click", unlock, { once: true });
-    }
-  };
+track.connect(gainNode).connect(audioContext.destination);
 
-  playSound();
+const playSound = async () => {
+try {
+await audioContext.resume();
+await audio.play();
+} catch {
+const unlock = async () => {
+await audioContext.resume();
+audio.play().catch(() => {});
+document.removeEventListener("touchstart", unlock);
+document.removeEventListener("click", unlock);
+};
 
-  const stopTimer = setTimeout(() => {
-    audio.pause();
-    audio.currentTime = 0;
-  }, 5000);
 
-  return () => clearTimeout(stopTimer);
+  document.addEventListener("touchstart", unlock, { once: true });
+  document.addEventListener("click", unlock, { once: true });
+}
+
+
+};
+
+playSound();
+
+const stopTimer = setTimeout(() => {
+audio.pause();
+audio.currentTime = 0;
+}, 10000);
+
+return () => clearTimeout(stopTimer);
 }, [finished]);
+
 
 useEffect(() => {
   const loadCurator = async () => {
