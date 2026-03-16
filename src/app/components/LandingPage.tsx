@@ -821,31 +821,7 @@ break-words whitespace-normal leading-relaxed max-w-2xl">
 
 </div>
 
-                    <div className="flex flex-wrap items-center gap-6">
-                      <button
-                        onClick={() => selectAnswer(current.id, "yes")}
-                        className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition  ${
-                          answers[current.id] === "yes"
-                            ? "bg-[#fab31e] text-black"
-                            : "text-white hover:bg-[#fab31e] hover:text-black"
-                        }`}
-                      >
-                        Yes
-                      </button>
-
-                      <button
-                        onClick={() => selectAnswer(current.id, "no")}
-                        className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-                          answers[current.id] === "no"
-                            ? "bg-[#fab31e] text-black"
-                            : "text-white hover:bg-[#fab31e] hover:text-black"
-                        }`}
-                      >
-                        No
-                      </button>
-
-                    
-                    </div>
+             
 
                     <PredictionButton
   onYes={() => selectAnswer(current.id, "yes")}
