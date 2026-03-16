@@ -162,7 +162,7 @@ const logout = async () => {
               <Button onClick={logout} text="Logout" className="text-black" />
             ) : (
               <Button
-                href="/test"
+                href="/login"
                 text="Login / Signup"
                 className="text-black"
               />
