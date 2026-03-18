@@ -83,13 +83,13 @@ useEffect(() => {
           <motion.div
             initial={{ y: 40, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center border flex-shrink-0"
+            className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center border  flex-shrink-0"
           >
             <div className="text-3xl mb-2">🥈</div>
 
             <img
               src={top3[1].avatar}
-              className="w-16 h-16 rounded-full mx-auto mb-2"
+              className="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
             />
 
             <p className="font-semibold text-lg">{top3[1].name}</p>
@@ -116,7 +116,7 @@ className="bg-[#fab31e] text-white shadow-2xl rounded-[20px] p-8 w-[55%] md:w-80
 
             <img
               src={top3[0].avatar}
-              className="w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white"
+              className="w-20 h-20 rounded-full mx-auto mb-3 border-4 border-white object-cover"
             />
 
             <p className="text-xl font-bold">{top3[0].name}</p>
@@ -141,7 +141,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
 
             <img
               src={top3[2].avatar}
-              className="w-16 h-16 rounded-full mx-auto mb-2"
+              className="w-16 h-16 rounded-full mx-auto mb-2 object-cover"
             />
 
             <p className="font-semibold text-lg">{top3[2].name}</p>
@@ -169,7 +169,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
       <div className="relative">
         <img
           src={top3[1].avatar}
-          className="w-20 h-20 rounded-full border-4 border-[#fab31e]"
+          className="w-20 h-20 rounded-full border-4 border-[#fab31e] object-cover"
         />
 
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#fab31e] text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
@@ -201,7 +201,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
       <div className="relative">
         <img
           src={top3[0].avatar}
-          className="w-24 h-24 rounded-full border-4 border-[#fab31e]"
+          className="w-24 h-24 rounded-full border-4 border-[#fab31e] object-cover"
         />
 
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#fab31e] text-white text-xs w-7 h-7 rounded-full flex items-center justify-center">
@@ -231,7 +231,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
       <div className="relative">
         <img
           src={top3[2].avatar}
-          className="w-20 h-20 rounded-full border-4 border-[#fab31e]"
+          className="w-20 h-20 rounded-full border-4 border-[#fab31e] object-cover"
         />
 
         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#fab31e] text-white text-xs w-6 h-6 rounded-full flex items-center justify-center">
@@ -276,7 +276,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
   <td className="p-4 font-semibold">#{i + 1}</td>
 
   <td className="p-4 flex items-center gap-3 capitalize">
-    <img src={u.avatar} className="w-8 h-8 rounded-full" />
+    <img src={u.avatar} className="w-8 h-8 rounded-full object-cover" />
     {u.name}
   </td>
 
@@ -312,7 +312,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
             <div className="flex items-center gap-3">
               <span className="font-semibold">#{i + 1}</span>
 
-              <img src={u.avatar} className="w-10 h-10 rounded-full" />
+              <img src={u.avatar} className="w-10 h-10 rounded-full object-cover" />
 
               <div>
                 <p className="font-medium capitalize">{u.name}</p>
