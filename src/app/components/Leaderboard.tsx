@@ -265,7 +265,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
               <th className="p-4">Rank</th>
               <th className="p-4">Player</th>
               <th className="p-4">Email</th>
-              <th className="p-4">Last 5 Days</th>
+              {/* <th className="p-4">Last 5 Days</th> */}
               <th className="p-4">Score</th>
             </tr>
           </thead>
@@ -282,9 +282,9 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
 
   <td className="p-4 text-gray-600">{u.email}</td>
 
-  <td className="p-4 text-gray-700">
+  {/* <td className="p-4 text-gray-700">
     {u.weekly?.join("  |  ") || "0/4 | 0/4 | 0/4 | 0/4 | 0/4"}
-  </td>
+  </td> */}
 <td className="p-4 font-bold text-[#fab31e]">
 <div className="flex items-center gap-2 text-[#fab31e] font-bold">
   <img
