@@ -140,6 +140,10 @@ const logout = async () => {
                   Home
                 </Link>
 
+                <Link href="/profile" className="font-medium">
+                  My Profile
+                </Link>
+
                 <Link href="/leaderboard" className="font-medium">
                   Leaderboard
                 </Link>
@@ -214,6 +218,14 @@ const logout = async () => {
                   </Link>
 
                   <Link
+                    href="/profile"
+                    onClick={() => setMenuOpen(false)}
+                    className="text-lg font-medium"
+                  >
+                      My Profile
+                  </Link>
+
+                  <Link
                     href="/leaderboard"
                     onClick={() => setMenuOpen(false)}
                     className="text-lg font-medium"
@@ -231,6 +243,21 @@ const logout = async () => {
                 >
                   Admin
                 </Link>
+
+                
+              )}
+
+
+               {role === "admin" && (
+                <Link
+                  href="/all-questions"
+                  onClick={() => setMenuOpen(false)}
+                  className="text-lg font-medium"
+                >
+                  All Question
+                </Link>
+
+                
               )}
 
               {isCurator && (
