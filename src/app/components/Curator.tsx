@@ -259,8 +259,6 @@ if (allHaveAnswers) {
 
   setSavedQuestions(updated);
 
-  // ✅ THIS WAS MISSING
-await calculateScores(assignedDate);
 
   setAnswered(true);
 
@@ -269,6 +267,7 @@ await calculateScores(assignedDate);
 
 
 const calculateScores = async (date: string) => {
+  
   const today = date;
 
   console.log("🔥 Running score calculation for:", today);
@@ -328,6 +327,11 @@ const calculateScores = async (date: string) => {
     }
   });
 
+
+  console.log("Votes count:", votesSnap.size);
+console.log("Questions count:", qSnap.size);
+console.log("Correct map:", correctMap);
+console.log("User scores:", userScores);
   console.log("🏆 Scores:", userScores);
 
   // ✅ UPDATE USERS (score + weekly BOTH HERE)
