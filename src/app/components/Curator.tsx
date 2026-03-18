@@ -11,7 +11,7 @@ import {
   getDoc,
 } from "firebase/firestore";
 import { query, where, limit } from "firebase/firestore";
-import { updateLeaderboard } from "@/lib/updateLeaderboard";
+
 import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Button from "./Button";
@@ -125,7 +125,7 @@ setAssignedDate(finalDate);
 const q = query(
   collection(db, "questions"),
   where("date", "==", finalDate),
-  where("curatorId", "==", uid)
+  limit(10)
 );
 
 const snap = await getDocs(q);
@@ -244,8 +244,6 @@ const saveAnswers = async () => {
   updated.forEach((q) => {
     answerObj[q.id] = q.correctAnswer;
   });
-
-  await updateLeaderboard(answerObj);
 
   alert("Answers saved");
 

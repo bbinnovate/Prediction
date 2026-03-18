@@ -1,10 +1,10 @@
 "use client";
 
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, orderBy ,limit } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Coins } from "lucide-react";
+
 const avatars = [
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
@@ -25,88 +25,41 @@ type User = {
 export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([]);
 
-  useEffect(() => {
-   async function load() {
-  const q = query(collection(db, "users"), orderBy("score", "desc"));
-  const snap = await getDocs(q);
+useEffect(() => {
+  async function load() {
+    const q = query(
+      collection(db, "users"),
+      orderBy("score", "desc"),
+      limit(50)
+    );
 
-  const votesSnap = await getDocs(collection(db, "votes"));
-  const questionsSnap = await getDocs(collection(db, "questions"));
+    const snap = await getDocs(q);
 
-  const votes = votesSnap.docs.map((d) => d.data());
+   const data = snap.docs.map((d, i) => {
+  const docData = d.data();
 
-  const questions: any = {};
-  questionsSnap.docs.forEach((d) => {
-  questions[d.id] = d.data()?.correctAnswer ?? null;
-  });
+  return {
+    id: d.id,
 
-const data = snap.docs
-.filter(d => d.data()?.name && d.data()?.email)
-.map((d, i) => {
-    const uid = d.id;
+    avatar:
+      docData.photo && docData.photo.trim() !== ""
+        ? docData.photo
+        : avatars[i % avatars.length],
 
-    const userVotes = votes.filter((v: any) => v.userId === uid);
-    // remove duplicate answers for the same question
-const uniqueVotes: any = {};
+    name: docData.name || "Anonymous",
 
-// collect unique votes per question
-userVotes.forEach((v: any) => {
-  uniqueVotes[v.questionId] = v;
+    // ❌ REMOVE EMAIL (see next point)
+    email: docData.email || "No Email",
+
+    score: Number(docData.score) || 0,
+  };
 });
 
-const filteredVotes: any[] = Object.values(uniqueVotes);
-
-  // sort votes so order is correct
-filteredVotes.sort((a: any, b: any) => {
-  const ta = a.createdAt?.seconds || new Date(a.createdAt).getTime();
-  const tb = b.createdAt?.seconds || new Date(b.createdAt).getTime();
-  return ta - tb;
-});
-
-const matches: number[] = [];
-let correctCount = 0;
-let questionCount = 0;
-
-filteredVotes.forEach((v: any) => {
-  const correctAnswer = questions[v.questionId];
-
-const userAns = String(v.answer).trim().toLowerCase();
-const correctAns = String(correctAnswer).trim().toLowerCase();
-
-if (userAns === correctAns) {
-  correctCount++;
-}
-
-  questionCount++;
-
-  // every 4 questions = 1 match
-  if (questionCount === 4) {
-    matches.push(correctCount);
-    correctCount = 0;
-    questionCount = 0;
+    setUsers(data);
   }
-});
 
-// only keep 5 matches
-const weekly = [];
-
-for (let i = 0; i < 5; i++) {
-  weekly.push(`${matches[i] || 0}/4`);
-}
-
-    return {
-      id: d.id,
-      avatar: avatars[i % avatars.length],
-      ...d.data(),
-      score: Number(d.data().score) || 0,
-      weekly,
-    };
-  });
-
-  setUsers(data);
-}
-    load();
-  }, []);
+  load();
+}, []);
 
   const top3 = users.slice(0, 3);
   const others = users.slice(3);

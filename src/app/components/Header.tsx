@@ -152,6 +152,13 @@ const logout = async () => {
               </Link>
             )}
 
+             {role === "admin" && (
+              <Link href="/all-questions" className="font-medium">
+                All Question
+              </Link>
+              
+            )}
+
            {(isCurator || role === "admin") && (
   <Link href="/curator" className="font-medium">
     Curator

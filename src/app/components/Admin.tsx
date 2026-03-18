@@ -1,12 +1,12 @@
 "use client";
 
 import { db, auth } from "@/lib/firebase";
-import { collection, getDocs, doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, doc, setDoc, getDoc ,limit } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { query, orderBy } from "firebase/firestore";
 import { ChevronDown } from "lucide-react";
-
+import { Pencil, Trash2 } from "lucide-react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
@@ -31,6 +31,8 @@ export default function Admin() {
   const [selectedUser, setSelectedUser] = useState("");
   const [assignSuccess, setAssignSuccess] = useState(false);
   const [assigning, setAssigning] = useState(false);
+  const [editUser, setEditUser] = useState<User | null>(null);
+const [editData, setEditData] = useState<any>({});
 
 
   /* ---------------- AUTH + LOAD USERS ---------------- */
@@ -68,7 +70,11 @@ useEffect(() => {
 
     /* LOAD USERS */
 
-const q = query(collection(db, "users"), orderBy("score", "desc"));
+const q = query(
+  collection(db, "users"),
+  orderBy("score", "desc"),
+  limit(200)
+);
 
 const usersSnap = await getDocs(q);
 
@@ -78,7 +84,14 @@ const loadedUsers: User[] = usersSnap.docs.map(d => ({
 }));
 
 
-setUsers(loadedUsers.filter(u => u.name && u.email));
+setUsers(
+  loadedUsers.map(u => ({
+    ...u,
+    name: u.name || "Anonymous",
+    email: u.email || "No Email",
+    score: u.score || 0,
+  }))
+);
     /* LOAD ASSIGNMENTS */
 
     const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
@@ -390,6 +403,85 @@ const removeAssignment = async (eventInfo: any) => {
     Reset All Scores
   </button>
 </div> */}
+{editUser && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+    <div className="bg-white p-6 rounded-[20px] w-[400px] max-w-[90%]">
+
+      <h3 className="text-lg font-semibold mb-4">Edit User</h3>
+
+      <input
+        className="w-full border p-2 mb-2 rounded"
+        placeholder="Name"
+        value={editData.name}
+        onChange={(e) =>
+          setEditData({ ...editData, name: e.target.value })
+        }
+      />
+
+      <input
+        className="w-full border p-2 mb-2 rounded"
+        placeholder="Email"
+        value={editData.email}
+        onChange={(e) =>
+          setEditData({ ...editData, email: e.target.value })
+        }
+      />
+
+      <input
+        type="number"
+        className="w-full border p-2 mb-2 rounded"
+        placeholder="Score"
+        value={editData.score}
+        onChange={(e) =>
+          setEditData({ ...editData, score: Number(e.target.value) })
+        }
+      />
+
+      <select
+        className="w-full border p-2 mb-4 rounded"
+        value={editData.role}
+        onChange={(e) =>
+          setEditData({ ...editData, role: e.target.value })
+        }
+      >
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+
+      <div className="flex gap-3">
+        <button
+          onClick={async () => {
+            await setDoc(
+              doc(db, "users", editUser.id),
+              editData,
+              { merge: true }
+            );
+
+            setUsers((prev) =>
+              prev.map((u) =>
+                u.id === editUser.id ? { ...u, ...editData } : u
+              )
+            );
+
+            setEditUser(null);
+          }}
+          className="flex-1 bg-black text-white py-2 rounded"
+        >
+          Save
+        </button>
+
+        <button
+          onClick={() => setEditUser(null)}
+          className="flex-1 border py-2 rounded"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
 
       <div className="overflow-x-auto border rounded-[20px] shadow">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
@@ -404,7 +496,8 @@ const removeAssignment = async (eventInfo: any) => {
               <th className="px-6 py-3 text-left">Score</th>
               <th className="px-6 py-3 text-left">PIN</th>
               {/* <th className="px-6 py-3 text-left">Curator Assign</th> */}
-              <th className="px-6 py-3 text-right">Delete</th>
+              <th className="px-6 py-3 text-right">Action</th>
+              
             </tr>
           </thead>
 
@@ -502,14 +595,35 @@ const removeAssignment = async (eventInfo: any) => {
   })()}
 </td> */}
 
-                  <td className="px-6 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(user.id)}
-                      className="text-red-600 hover:underline cursor-pointer"
-                    >
-                      Delete
-                    </button>
-                  </td>
+                 <td className="px-6 py-3 text-right flex gap-3 justify-end">
+
+  {/* EDIT */}
+  <button
+    onClick={() => {
+      setEditUser(user);
+      setEditData({
+        name: user.name || "",
+        email: user.email || "",
+        score: user.score || 0,
+        role: user.role || "user",
+      });
+    }}
+    className="text-blue-600 hover:text-blue-800 transition cursor-pointer"
+    title="Edit User"
+  >
+    <Pencil size={18} />
+  </button>
+
+  {/* DELETE */}
+  <button
+    onClick={() => handleDelete(user.id)}
+    className="text-red-600 hover:text-red-800 transition cursor-pointer"
+    title="Delete User"
+  >
+    <Trash2 size={18} />
+  </button>
+
+</td>
                 </tr>
               );
             })}
