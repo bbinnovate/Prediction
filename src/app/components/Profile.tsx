@@ -70,36 +70,9 @@ export default function Profile() {
 
       const oldPin = snap.data()?.pin;
 
-      // PIN changed
-      if (oldPin !== pin) {
-        const pinDoc = await getDoc(doc(db, "pinLogin", pin));
-
-        if (pinDoc.exists()) {
-          const pinData = pinDoc.data();
-
-          // PIN belongs to someone else
-          if (pinData?.uid !== user) {
-            alert("This PIN is already used by another user");
-            setSaving(false);
-            return;
-          }
-        }
-
-        // delete old PIN mapping
-        if (oldPin) {
-          await deleteDoc(doc(db, "pinLogin", oldPin));
-        }
-
-        // create new mapping
-        await setDoc(doc(db, "pinLogin", pin), {
-          uid: user,
-        });
-      }
-
       await updateDoc(userRef, {
         name,
         email,
-        pin,
         photo,
       });
 
@@ -126,11 +99,19 @@ export default function Profile() {
 
       const url = await getDownloadURL(imageRef);
 
-      await updateDoc(doc(db, "users", user), {
-        photo: url,
-      });
+const newUrl = url + "?t=" + Date.now();
 
-      setPhoto(url + "?v=" + Date.now());
+await updateDoc(doc(db, "users", user), {
+  photo: newUrl,
+});
+
+setPhoto(newUrl);
+
+await updateDoc(doc(db, "users", user), {
+  photo: newUrl,
+});
+
+setPhoto(newUrl);
     } catch (err) {
       console.error(err);
       alert("Image upload failed");
@@ -156,14 +137,13 @@ export default function Profile() {
 
         <div className="flex flex-col items-center ">
           <img
-            key={photo}
-            src={
-              photo && photo.trim() !== ""
-                ? photo
-                : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-            }
-            className="w-24 h-24 rounded-full object-cover border-4 border-[#FAB31E]"
-          />
+  src={
+    photo && photo.trim() !== ""
+      ? photo
+      : "https://cdn-icons-png.flaticon.com/512/149/149071.png"
+  }
+  className="w-24 h-24 rounded-full object-cover border-4 border-[#FAB31E]"
+/>
 
           <input
             type="file"
@@ -188,23 +168,21 @@ export default function Profile() {
         />
 
         <div className="relative mb-3">
-          <input
-            type={showPin ? "text" : "password"}
-            value={pin}
-            maxLength={4}
-            onChange={(e) => setPin(e.target.value)}
-            placeholder="4 Digit PIN"
-            className="w-full border p-2 rounded bg-black text-white pr-10"
-          />
+  <input
+    type={showPin ? "text" : "password"}
+    value={pin}
+    readOnly
+    className="w-full border p-2 rounded bg-black text-white pr-10 opacity-70 cursor-not-allowed"
+  />
 
-          <button
-            type="button"
-            onClick={() => setShowPin(!showPin)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-white cursor-pointer"
-          >
-            {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
+  <button
+    type="button"
+    onClick={() => setShowPin(!showPin)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-white cursor-pointer"
+  >
+    {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+  </button>
+</div>
 
         <div className="bg-[#1D1D1D] p-3 rounded text-center mb-5">
           <p className="text-gray-400 text-sm">Your Score</p>

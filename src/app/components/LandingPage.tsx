@@ -393,6 +393,7 @@ const submitVotes = async (uid: any) => {
 
   try {
 const today = new Date().toLocaleDateString("en-CA");
+  const dayIndex = new Date().getDay(); 
     // ✅ SAVE VOTES (unique per user + question)
     await Promise.all(
       Object.keys(answers).map((qid) =>
@@ -407,38 +408,8 @@ const today = new Date().toLocaleDateString("en-CA");
     );
 
     // ✅ CALCULATE SCORE
-    let score = 0;
-
-    questions.forEach((q) => {
-      const userAns = answers[q.id];
-      const correctAns = q.correctAnswer;
-
-      if (
-        String(userAns).trim().toLowerCase() ===
-        String(correctAns).trim().toLowerCase()
-      ) {
-        score++;
-      }
-    });
-
-
-
-await runTransaction(db, async (transaction) => {
-  const userRef = doc(db, "users", uid);
-  const userSnap = await transaction.get(userRef);
-
-  if (!userSnap.exists()) return;
-
-  const data = userSnap.data();
-
-  if (data.lastPlayed === today) {
-    return; // already played
-  }
-
-  transaction.update(userRef, {
-    score: (data.score || 0) + score,
-    lastPlayed: today,
-  });
+await updateDoc(doc(db, "users", uid), {
+  lastPlayed: today,
 });
 
     // ✅ CLEANUP SESSION
@@ -450,6 +421,12 @@ await runTransaction(db, async (transaction) => {
     console.error("Vote error:", err);
     alert("Failed to submit votes");
   }
+
+
+
+// 1 = Monday ... 5 = Friday
+
+
 };
 
   const saveVotes = async () => {

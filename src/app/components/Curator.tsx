@@ -16,7 +16,7 @@ import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import Button from "./Button";
 import { setDoc } from "firebase/firestore";
-
+import { increment } from "firebase/firestore";
 export default function Curator() {
   const [questions, setQuestions] = useState(["", "", "", ""]);
   const [savedQuestions, setSavedQuestions] = useState<any[]>([]);
@@ -214,9 +214,18 @@ if (allAnswered) {
     }));
   };
 
+
+  
   // SAVE ANSWERS BUTTON
 const saveAnswers = async () => {
   const updated: any[] = [];
+
+  const allAnswered = savedQuestions.every(q => answers[q.id]);
+
+if (!allAnswered) {
+  alert("Answer all questions first");
+  return;
+}
 
   for (const q of savedQuestions) {
     const ans = answers[q.id];
@@ -226,9 +235,6 @@ const saveAnswers = async () => {
       return;
     }
 
-
-      setAnswered(true);
-
     await updateDoc(doc(db, "questions", q.id), {
       correctAnswer: ans,
       answeredBy: sessionUid
@@ -237,18 +243,137 @@ const saveAnswers = async () => {
     updated.push({ ...q, correctAnswer: ans });
   }
 
+
+  // AFTER updating all questions
+const qSnap = await getDocs(
+  query(collection(db, "questions"), where("date", "==", assignedDate))
+);
+
+const allHaveAnswers = qSnap.docs.every(
+  (d) => d.data().correctAnswer
+);
+
+if (allHaveAnswers) {
+  await calculateScores(assignedDate);
+}
+
   setSavedQuestions(updated);
 
-  const answerObj: any = {};
+  // ✅ THIS WAS MISSING
+await calculateScores(assignedDate);
 
-  updated.forEach((q) => {
-    answerObj[q.id] = q.correctAnswer;
+  setAnswered(true);
+
+  alert("Answers saved & scores updated");
+};
+
+
+const calculateScores = async (date: string) => {
+  const today = date;
+
+  console.log("🔥 Running score calculation for:", today);
+
+  const metaRef = doc(db, "scoreMeta", today);
+  const metaSnap = await getDoc(metaRef);
+
+  if (metaSnap.exists() && metaSnap.data()?.calculated) {
+    console.log("⚠️ Already calculated");
+    return;
+  }
+
+  // ✅ GET QUESTIONS
+  const qSnap = await getDocs(
+    query(collection(db, "questions"), where("date", "==", today))
+  );
+
+  if (qSnap.empty) {
+    console.log("❌ No questions");
+    return;
+  }
+
+  const questions = qSnap.docs.map((d) => d.data());
+
+  const hasMissing = questions.some((q) => !q.correctAnswer);
+
+  if (hasMissing) {
+    console.log("❌ Missing answers → STOP");
+    return;
+  }
+
+  // ✅ CORRECT MAP
+  const correctMap: any = {};
+
+  qSnap.docs.forEach((doc) => {
+    correctMap[doc.id] = String(doc.data().correctAnswer).toLowerCase();
   });
 
-  alert("Answers saved");
+  // ✅ GET VOTES
+  const votesSnap = await getDocs(
+    query(collection(db, "votes"), where("date", "==", today))
+  );
 
+  const userScores: any = {};
 
+  votesSnap.docs.forEach((doc) => {
+    const data = doc.data();
+
+    const correct = correctMap[data.questionId];
+    if (!correct) return;
+
+    if (
+      String(data.answer).toLowerCase() === correct
+    ) {
+      userScores[data.userId] =
+        (userScores[data.userId] || 0) + 1;
+    }
+  });
+
+  console.log("🏆 Scores:", userScores);
+
+  // ✅ UPDATE USERS (score + weekly BOTH HERE)
+  const dayIndex = new Date().getDay(); // 0–6
+
+  try {
+    for (const uid in userScores) {
+      const userRef = doc(db, "users", uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) continue;
+
+      const data = userSnap.data();
+
+      let weekly = data.weekly || ["0/4","0/4","0/4","0/4","0/4"];
+
+      // reset Saturday
+      if (dayIndex === 6) {
+        weekly = ["0/4","0/4","0/4","0/4","0/4"];
+      }
+
+      // update Monday–Friday
+      if (dayIndex >= 1 && dayIndex <= 5) {
+        weekly[dayIndex - 1] = `${userScores[uid]}/4`;
+      }
+
+      await updateDoc(userRef, {
+        score: increment(userScores[uid]),
+        weekly: weekly,
+      });
+    }
+
+    await setDoc(metaRef, {
+      calculated: true,
+      date: today,
+    });
+
+    console.log("✅ DONE");
+
+  } catch (err) {
+    console.error("❌ Error updating scores:", err);
+  }
 };
+
+
+
   if (loading) return  <section className="h-screen flex items-center justify-center">
         <p>Loading questions...</p>
       </section>;

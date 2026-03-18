@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs, query, orderBy ,limit } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-
+import { onSnapshot } from "firebase/firestore";
 const avatars = [
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
   "https://cdn-icons-png.flaticon.com/512/149/149071.png",
@@ -25,40 +25,36 @@ type User = {
 export default function Leaderboard() {
   const [users, setUsers] = useState<User[]>([]);
 
+
+
 useEffect(() => {
-  async function load() {
-    const q = query(
-      collection(db, "users"),
-      orderBy("score", "desc"),
-      limit(50)
-    );
+  const q = query(
+    collection(db, "users"),
+    orderBy("score", "desc"),
+    limit(50)
+  );
 
-    const snap = await getDocs(q);
+  const unsub = onSnapshot(q, (snap) => {
+    const data = snap.docs.map((d, i) => {
+      const docData = d.data();
 
-   const data = snap.docs.map((d, i) => {
-  const docData = d.data();
-
-  return {
-    id: d.id,
-
-    avatar:
-      docData.photo && docData.photo.trim() !== ""
-        ? docData.photo
-        : avatars[i % avatars.length],
-
-    name: docData.name || "Anonymous",
-
-    // ❌ REMOVE EMAIL (see next point)
-    email: docData.email || "No Email",
-
-    score: Number(docData.score) || 0,
-  };
-});
+      return {
+        id: d.id,
+       avatar:
+  docData.photo && docData.photo.trim() !== ""
+    ? docData.photo
+    : avatars[i % avatars.length],
+        name: docData.name || "Anonymous",
+        email: docData.email || "No Email",
+        weekly: docData.weekly || ["0/4","0/4","0/4","0/4","0/4"],
+        score: Number(docData.score) || 0,
+      };
+    });
 
     setUsers(data);
-  }
+  });
 
-  load();
+  return () => unsub();
 }, []);
 
   const top3 = users.slice(0, 3);
@@ -269,7 +265,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
               <th className="p-4">Rank</th>
               <th className="p-4">Player</th>
               <th className="p-4">Email</th>
-              {/* <th className="p-4">Last 5 Days</th> */}
+              <th className="p-4">Last 5 Days</th>
               <th className="p-4">Score</th>
             </tr>
           </thead>
@@ -286,9 +282,9 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
 
   <td className="p-4 text-gray-600">{u.email}</td>
 
-  {/* <td className="p-4 text-gray-700">
+  <td className="p-4 text-gray-700">
     {u.weekly?.join("  |  ") || "0/4 | 0/4 | 0/4 | 0/4 | 0/4"}
-  </td> */}
+  </td>
 <td className="p-4 font-bold text-[#fab31e]">
 <div className="flex items-center gap-2 text-[#fab31e] font-bold">
   <img
