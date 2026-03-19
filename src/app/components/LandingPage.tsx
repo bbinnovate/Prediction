@@ -385,34 +385,36 @@ const hasVotedToday = async (uid: any) => {
 };
 
 const submitVotes = async (uid: any) => {
-
-  // 🚫 prevent double submit
   if (finished) return;
 
   setFinished(true);
 
   try {
-const today = new Date().toLocaleDateString("en-CA");
-  const dayIndex = new Date().getDay(); 
-    // ✅ SAVE VOTES (unique per user + question)
+    const today = new Date().toLocaleDateString("en-CA");
+
+    const finalAnswers: any = {};
+
+    // 🚨 FORCE ALL 4 QUESTIONS
+    questions.forEach((q) => {
+      finalAnswers[q.id] = answers[q.id] || "";
+    });
+
     await Promise.all(
-      Object.keys(answers).map((qid) =>
+      Object.keys(finalAnswers).map((qid) =>
         setDoc(doc(db, "votes", `${uid}_${today}_${qid}`), {
           userId: uid,
           questionId: qid,
-          answer: answers[qid],
-          date: today, 
+          answer: String(finalAnswers[qid]).trim().toLowerCase(), // "", "yes", "no"
+          date: today,
           createdAt: new Date(),
         })
       )
     );
 
-    // ✅ CALCULATE SCORE
-await updateDoc(doc(db, "users", uid), {
-  lastPlayed: today,
-});
+    await updateDoc(doc(db, "users", uid), {
+      lastPlayed: today,
+    });
 
-    // ✅ CLEANUP SESSION
     localStorage.removeItem("pinUser");
     await auth.signOut().catch(() => {});
     window.dispatchEvent(new Event("pin-logout"));
@@ -421,12 +423,6 @@ await updateDoc(doc(db, "users", uid), {
     console.error("Vote error:", err);
     alert("Failed to submit votes");
   }
-
-
-
-// 1 = Monday ... 5 = Friday
-
-
 };
 
   const saveVotes = async () => {

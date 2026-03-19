@@ -235,7 +235,7 @@ const saveAnswers = async () => {
       const ref = doc(db, "questions", q.id);
 
       batch.update(ref, {
-        correctAnswer: answers[q.id],
+        correctAnswer: String(answers[q.id]).trim().toLowerCase(),
         answeredBy: sessionUid
       });
     }

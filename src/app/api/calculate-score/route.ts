@@ -46,6 +46,7 @@ export async function POST(req: Request) {
     const userScores: any = {};
     const allUsersSet = new Set<string>();
 
+    // ✅ CORE SCORING LOGIC
     votesSnap.forEach((doc) => {
       const data = doc.data();
 
@@ -54,7 +55,8 @@ export async function POST(req: Request) {
         return;
       }
 
-      allUsersSet.add(data.userId);
+      const uid = data.userId;
+      allUsersSet.add(uid);
 
       const correct = correctMap[data.questionId];
 
@@ -63,23 +65,32 @@ export async function POST(req: Request) {
         return;
       }
 
-      const userAnswer = String(data.answer).trim().toLowerCase();
+      const userAnswer = String(data.answer || "")
+        .trim()
+        .toLowerCase();
+
+      if (!userScores[uid]) userScores[uid] = 0;
+
+      // ⏱️ skipped → 0 (do nothing)
+      if (!userAnswer) return;
 
       if (userAnswer === correct) {
-        userScores[data.userId] =
-          (userScores[data.userId] || 0) + 1;
+        userScores[uid] += 1; // ✅ correct
       } else {
-        console.log("❌ Wrong answer:", {
-          user: data.userId,
-          answer: data.answer,
-          correct,
-        });
+        userScores[uid] -= 1; // ❌ wrong
       }
     });
 
-    // ✅ IMPORTANT: INCLUDE USERS WITH 0 SCORE
+    // 🎯 BONUS: 4 correct → +2
+    Object.keys(userScores).forEach((uid) => {
+      if (userScores[uid] === 4) {
+        userScores[uid] += 2;
+      }
+    });
+
+    // ✅ INCLUDE USERS WITH 0 SCORE
     allUsersSet.forEach((uid) => {
-      if (!userScores[uid]) {
+      if (userScores[uid] === undefined) {
         userScores[uid] = 0;
       }
     });
@@ -118,7 +129,7 @@ export async function POST(req: Request) {
         {
           score: admin.firestore.FieldValue.increment(userScores[uid]),
           weekly: weekly,
-          lastPlayed: date, // keep consistency
+          lastPlayed: date,
         },
         { merge: true }
       );

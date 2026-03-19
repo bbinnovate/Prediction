@@ -265,7 +265,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
               <th className="p-4">Rank</th>
               <th className="p-4">Player</th>
               <th className="p-4">Email</th>
-              <th className="p-4">Last 5 Days</th> 
+              <th className="p-4">Mon | Tue | Wed | Thu | Fri</th> 
               <th className="p-4">Score</th>
             </tr>
           </thead>
