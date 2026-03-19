@@ -9,8 +9,11 @@ import {
   updateDoc,
   doc,
   getDoc,
+  query, 
+  where,
+  limit ,
+  writeBatch,
 } from "firebase/firestore";
-import { query, where, limit } from "firebase/firestore";
 
 import { db, auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -210,8 +213,10 @@ export default function Curator() {
   };
 
   // SAVE ANSWERS BUTTON
+
+
 const saveAnswers = async () => {
-  if (savingAnswers) return; // prevent double click
+  if (savingAnswers) return;
 
   const allAnswered = savedQuestions.every(q => answers[q.id]);
 
@@ -223,144 +228,49 @@ const saveAnswers = async () => {
   try {
     setSavingAnswers(true);
 
-    // 🔥 STEP 1: Save all answers
+    const batch = writeBatch(db);
+
+    // ✅ SAVE ANSWERS
     for (const q of savedQuestions) {
-      await updateDoc(doc(db, "questions", q.id), {
+      const ref = doc(db, "questions", q.id);
+
+      batch.update(ref, {
         correctAnswer: answers[q.id],
         answeredBy: sessionUid
       });
     }
 
-    // 🔥 STEP 2: VERIFY DB (don’t trust your loop)
-    const qSnap = await getDocs(
-      query(collection(db, "questions"), where("date", "==", assignedDate))
-    );
+    await batch.commit();
+    console.log("✅ Answers saved");
 
-    const allHaveAnswers = qSnap.docs.every(
-      (d) => d.data().correctAnswer
-    );
-
-    if (!allHaveAnswers) {
-      throw new Error("Answers not properly saved in DB");
-    }
-
-    // 🔥 STEP 3: Calculate scores
-    await calculateScores(assignedDate);
-
-    // 🔥 STEP 4: ONLY NOW update UI
-    setAnswered(true);
-
-  } catch (err) {
-    console.error(err);
-    alert("Something failed while saving answers. Try again.");
-  } finally {
+  } catch (err: any) {
+    console.error("❌ Batch failed:", err);
+    alert(err.message || "Failed to save answers");
     setSavingAnswers(false);
+    return; // STOP here
   }
+
+  // ⚠️ SEPARATE BLOCK
+  try {
+    await fetch("/api/calculate-score", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({ date: assignedDate }),
+});
+    console.log("✅ Scores calculated");
+  } catch (err: any) {
+    console.error("❌ Score calculation failed:", err);
+    alert("Answers saved but scoring failed");
+    // still continue → answers ARE saved
+  }
+
+  setAnswered(true);
+  setSavingAnswers(false);
 };
 
-  const calculateScores = async (date: string) => {
-    const today = date;
 
-    console.log("🔥 Running score calculation for:", today);
-
-    const metaRef = doc(db, "scoreMeta", today);
-    const metaSnap = await getDoc(metaRef);
-
-    if (metaSnap.exists() && metaSnap.data()?.calculated) {
-      console.log("⚠️ Already calculated");
-      return;
-    }
-
-    // ✅ GET QUESTIONS
-    const qSnap = await getDocs(
-      query(collection(db, "questions"), where("date", "==", today)),
-    );
-
-    if (qSnap.empty) {
-      console.log("❌ No questions");
-      return;
-    }
-
-    const questions = qSnap.docs.map((d) => d.data());
-
-    const hasMissing = questions.some((q) => !q.correctAnswer);
-
-    if (hasMissing) {
-      console.log("❌ Missing answers → STOP");
-      return;
-    }
-
-    // ✅ CORRECT MAP
-    const correctMap: any = {};
-
-    qSnap.docs.forEach((doc) => {
-      correctMap[doc.id] = String(doc.data().correctAnswer).toLowerCase();
-    });
-
-    // ✅ GET VOTES
-    const votesSnap = await getDocs(
-      query(collection(db, "votes"), where("date", "==", today)),
-    );
-
-    const userScores: any = {};
-
-    votesSnap.docs.forEach((doc) => {
-      const data = doc.data();
-
-      const correct = correctMap[data.questionId];
-      if (!correct) return;
-
-      if (String(data.answer).toLowerCase() === correct) {
-        userScores[data.userId] = (userScores[data.userId] || 0) + 1;
-      }
-    });
-
-    console.log("Votes count:", votesSnap.size);
-    console.log("Questions count:", qSnap.size);
-    console.log("Correct map:", correctMap);
-    console.log("User scores:", userScores);
-    console.log("🏆 Scores:", userScores);
-
-    // ✅ UPDATE USERS (score + weekly BOTH HERE)
-    const dayIndex = new Date().getDay(); // 0–6
-
-    try {
-      for (const uid in userScores) {
-        const userRef = doc(db, "users", uid);
-        const userSnap = await getDoc(userRef);
-
-        if (!userSnap.exists()) continue;
-
-        const data = userSnap.data();
-
-        let weekly = data.weekly || ["0/4", "0/4", "0/4", "0/4", "0/4"];
-
-        // reset Saturday
-        if (dayIndex === 6) {
-          weekly = ["0/4", "0/4", "0/4", "0/4", "0/4"];
-        }
-
-        // update Monday–Friday
-        if (dayIndex >= 1 && dayIndex <= 5) {
-          weekly[dayIndex - 1] = `${userScores[uid]}/4`;
-        }
-
-        await updateDoc(userRef, {
-          score: increment(userScores[uid]),
-          weekly: weekly,
-        });
-      }
-
-      await setDoc(metaRef, {
-        calculated: true,
-        date: today,
-      });
-
-      console.log("✅ DONE");
-    } catch (err) {
-      console.error("❌ Error updating scores:", err);
-    }
-  };
 
   if (loading)
     return (
@@ -481,6 +391,9 @@ const saveAnswers = async () => {
   className="white-text mt-6"
   disabled={savingAnswers}
 />
+
+
+
           </div>
         )}
       </div>
