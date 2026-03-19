@@ -26,18 +26,19 @@ export default function Curator() {
   const router = useRouter();
   const [assignedDate, setAssignedDate] = useState("");
   const [sessionUid, setSessionUid] = useState("");
+  const [savingAnswers, setSavingAnswers] = useState(false);
 
-const now = new Date();
-const year = now.getFullYear();
-const month = String(now.getMonth() + 1).padStart(2, "0");
-const day = String(now.getDate()).padStart(2, "0");
-const today = `${year}-${month}-${day}`;
-const currentMinutes = now.getHours() * 60 + now.getMinutes();
-const minutesNow = now.getHours() * 60 + now.getMinutes();
-const answerStart = 10 * 60 + 30; // 10:30 AM
-const answerEnd = 18 * 60; // 6:00 PM
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const today = `${year}-${month}-${day}`;
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const minutesNow = now.getHours() * 60 + now.getMinutes();
+  const answerStart = 10 * 60 + 30; // 10:30 AM
+  const answerEnd = 18 * 60; // 6:00 PM
 
-const canAnswer = minutesNow >= answerStart && minutesNow <= answerEnd;
+  const canAnswer = minutesNow >= answerStart && minutesNow <= answerEnd;
   // LOAD PAGE + PERMISSION CHECK
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (user) => {
@@ -58,110 +59,104 @@ const canAnswer = minutesNow >= answerStart && minutesNow <= answerEnd;
       setSessionUid(uid);
 
       // check if this user is today's curator
-const userSnap = await getDoc(doc(db, "users", uid));
+      const userSnap = await getDoc(doc(db, "users", uid));
 
-if (!userSnap.exists()) {
-  router.push("/");
-  return;
-}
-
-const role = userSnap.data().role;
-
-let allowedDate = null;
-
-const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
-
-const sixPM = 18 * 60;
-
-let activeDate: string | null = null;
-
-// before 6 PM → today's curator
-if (currentMinutes < sixPM) {
-  activeDate = today;
-}
-
-// after 6 PM → tomorrow's curator
-if (currentMinutes >= sixPM) {
-  const t = new Date();
-  t.setDate(t.getDate() + 1);
-  const ty = t.getFullYear();
-  const tm = String(t.getMonth() + 1).padStart(2, "0");
-  const td = String(t.getDate()).padStart(2, "0");
-  activeDate = `${ty}-${tm}-${td}`;
-}
-
-// admin always allowed
-if (role === "admin") {
-  allowedDate = activeDate || today;
-} else {
-
-  if (!activeDate) {
-    allowedDate = null;
-  } else {
-
-    const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
-
-    if (curatorSnap.exists()) {
-      const data = curatorSnap.data();
-
-      if (data.curatorId === uid) {
-        allowedDate = activeDate;
+      if (!userSnap.exists()) {
+        router.push("/");
+        return;
       }
-    }
 
-  }
+      const role = userSnap.data().role;
 
-}
+      let allowedDate = null;
 
-if (!allowedDate && role !== "admin") {
-  router.push("/");
-  return;
-}
+      const curatorsSnap = await getDocs(collection(db, "dailyCurator"));
 
-const finalDate = allowedDate || today;
-setAssignedDate(finalDate);
+      const sixPM = 18 * 60;
 
-// check if questions already exist
-const q = query(
-  collection(db, "questions"),
-  where("date", "==", finalDate),
-  limit(10)
-);
+      let activeDate: string | null = null;
 
-const snap = await getDocs(q);
+      // before 6 PM → today's curator
+      if (currentMinutes < sixPM) {
+        activeDate = today;
+      }
 
-const raw = snap.docs.map((d) => ({
-  id: d.id,
-  ...(d.data() as any),
-}));
+      // after 6 PM → tomorrow's curator
+      if (currentMinutes >= sixPM) {
+        const t = new Date();
+        t.setDate(t.getDate() + 1);
+        const ty = t.getFullYear();
+        const tm = String(t.getMonth() + 1).padStart(2, "0");
+        const td = String(t.getDate()).padStart(2, "0");
+        activeDate = `${ty}-${tm}-${td}`;
+      }
 
-// remove duplicate questions
-const seen = new Set<string>();
-const unique: any[] = [];
+      // admin always allowed
+      if (role === "admin") {
+        allowedDate = activeDate || today;
+      } else {
+        if (!activeDate) {
+          allowedDate = null;
+        } else {
+          const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
 
-for (const q of raw) {
-  const text = q.question?.trim().toLowerCase();
+          if (curatorSnap.exists()) {
+            const data = curatorSnap.data();
 
-  if (!seen.has(text)) {
-    seen.add(text);
-    unique.push(q);
-  }
-}
+            if (data.curatorId === uid) {
+              allowedDate = activeDate;
+            }
+          }
+        }
+      }
 
-// always show only first 4
-const data = unique.slice(0, 4);
+      if (!allowedDate && role !== "admin") {
+        router.push("/");
+        return;
+      }
 
-    if (data.length > 0) {
+      const finalDate = allowedDate || today;
+      setAssignedDate(finalDate);
 
- const allAnswered = data.every((q: any) => q.correctAnswer !== null);
+      // check if questions already exist
+      const q = query(
+        collection(db, "questions"),
+        where("date", "==", finalDate),
+        limit(10),
+      );
 
-if (allAnswered) {
-  setAnswered(true);
-}
+      const snap = await getDocs(q);
 
-  setSavedQuestions(data);
+      const raw = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as any),
+      }));
 
-}
+      // remove duplicate questions
+      const seen = new Set<string>();
+      const unique: any[] = [];
+
+      for (const q of raw) {
+        const text = q.question?.trim().toLowerCase();
+
+        if (!seen.has(text)) {
+          seen.add(text);
+          unique.push(q);
+        }
+      }
+
+      // always show only first 4
+      const data = unique.slice(0, 4);
+
+      if (data.length > 0) {
+        const allAnswered = data.every((q: any) => q.correctAnswer !== null);
+
+        if (allAnswered) {
+          setAnswered(true);
+        }
+
+        setSavedQuestions(data);
+      }
 
       setLoading(false);
     });
@@ -178,10 +173,10 @@ if (allAnswered) {
 
   // SAVE QUESTIONS (ONLY ONCE PER DAY)
   const saveQuestions = async () => {
-   if (savedQuestions.length >= 4) {
-  alert("4 questions already exist for today");
-  return;
-}
+    if (savedQuestions.length >= 4) {
+      alert("4 questions already exist for today");
+      return;
+    }
 
     const created: any[] = [];
 
@@ -214,226 +209,209 @@ if (allAnswered) {
     }));
   };
 
-
-  
   // SAVE ANSWERS BUTTON
 const saveAnswers = async () => {
-  const updated: any[] = [];
+  if (savingAnswers) return; // prevent double click
 
   const allAnswered = savedQuestions.every(q => answers[q.id]);
 
-if (!allAnswered) {
-  alert("Answer all questions first");
-  return;
-}
-
-  for (const q of savedQuestions) {
-    const ans = answers[q.id];
-
-    if (!ans) {
-      alert("Answer all questions");
-      return;
-    }
-
-    await updateDoc(doc(db, "questions", q.id), {
-      correctAnswer: ans,
-      answeredBy: sessionUid
-    });
-
-    updated.push({ ...q, correctAnswer: ans });
-  }
-
-
-  // AFTER updating all questions
-const qSnap = await getDocs(
-  query(collection(db, "questions"), where("date", "==", assignedDate))
-);
-
-const allHaveAnswers = qSnap.docs.every(
-  (d) => d.data().correctAnswer
-);
-
-if (allHaveAnswers) {
-  await calculateScores(assignedDate);
-}
-
-  setSavedQuestions(updated);
-
-
-  setAnswered(true);
-
-  alert("Answers saved & scores updated");
-};
-
-
-const calculateScores = async (date: string) => {
-  
-  const today = date;
-
-  console.log("🔥 Running score calculation for:", today);
-
-  const metaRef = doc(db, "scoreMeta", today);
-  const metaSnap = await getDoc(metaRef);
-
-  if (metaSnap.exists() && metaSnap.data()?.calculated) {
-    console.log("⚠️ Already calculated");
+  if (!allAnswered) {
+    alert("Answer all questions first");
     return;
   }
-
-  // ✅ GET QUESTIONS
-  const qSnap = await getDocs(
-    query(collection(db, "questions"), where("date", "==", today))
-  );
-
-  if (qSnap.empty) {
-    console.log("❌ No questions");
-    return;
-  }
-
-  const questions = qSnap.docs.map((d) => d.data());
-
-  const hasMissing = questions.some((q) => !q.correctAnswer);
-
-  if (hasMissing) {
-    console.log("❌ Missing answers → STOP");
-    return;
-  }
-
-  // ✅ CORRECT MAP
-  const correctMap: any = {};
-
-  qSnap.docs.forEach((doc) => {
-    correctMap[doc.id] = String(doc.data().correctAnswer).toLowerCase();
-  });
-
-  // ✅ GET VOTES
-  const votesSnap = await getDocs(
-    query(collection(db, "votes"), where("date", "==", today))
-  );
-
-  const userScores: any = {};
-
-  votesSnap.docs.forEach((doc) => {
-    const data = doc.data();
-
-    const correct = correctMap[data.questionId];
-    if (!correct) return;
-
-    if (
-      String(data.answer).toLowerCase() === correct
-    ) {
-      userScores[data.userId] =
-        (userScores[data.userId] || 0) + 1;
-    }
-  });
-
-
-  console.log("Votes count:", votesSnap.size);
-console.log("Questions count:", qSnap.size);
-console.log("Correct map:", correctMap);
-console.log("User scores:", userScores);
-  console.log("🏆 Scores:", userScores);
-
-  // ✅ UPDATE USERS (score + weekly BOTH HERE)
-  const dayIndex = new Date().getDay(); // 0–6
 
   try {
-    for (const uid in userScores) {
-      const userRef = doc(db, "users", uid);
-      const userSnap = await getDoc(userRef);
+    setSavingAnswers(true);
 
-      if (!userSnap.exists()) continue;
-
-      const data = userSnap.data();
-
-      let weekly = data.weekly || ["0/4","0/4","0/4","0/4","0/4"];
-
-      // reset Saturday
-      if (dayIndex === 6) {
-        weekly = ["0/4","0/4","0/4","0/4","0/4"];
-      }
-
-      // update Monday–Friday
-      if (dayIndex >= 1 && dayIndex <= 5) {
-        weekly[dayIndex - 1] = `${userScores[uid]}/4`;
-      }
-
-      await updateDoc(userRef, {
-        score: increment(userScores[uid]),
-        weekly: weekly,
+    // 🔥 STEP 1: Save all answers
+    for (const q of savedQuestions) {
+      await updateDoc(doc(db, "questions", q.id), {
+        correctAnswer: answers[q.id],
+        answeredBy: sessionUid
       });
     }
 
-    await setDoc(metaRef, {
-      calculated: true,
-      date: today,
-    });
+    // 🔥 STEP 2: VERIFY DB (don’t trust your loop)
+    const qSnap = await getDocs(
+      query(collection(db, "questions"), where("date", "==", assignedDate))
+    );
 
-    console.log("✅ DONE");
+    const allHaveAnswers = qSnap.docs.every(
+      (d) => d.data().correctAnswer
+    );
+
+    if (!allHaveAnswers) {
+      throw new Error("Answers not properly saved in DB");
+    }
+
+    // 🔥 STEP 3: Calculate scores
+    await calculateScores(assignedDate);
+
+    // 🔥 STEP 4: ONLY NOW update UI
+    setAnswered(true);
 
   } catch (err) {
-    console.error("❌ Error updating scores:", err);
+    console.error(err);
+    alert("Something failed while saving answers. Try again.");
+  } finally {
+    setSavingAnswers(false);
   }
 };
 
+  const calculateScores = async (date: string) => {
+    const today = date;
 
+    console.log("🔥 Running score calculation for:", today);
 
-  if (loading) return  <section className="h-screen flex items-center justify-center">
+    const metaRef = doc(db, "scoreMeta", today);
+    const metaSnap = await getDoc(metaRef);
+
+    if (metaSnap.exists() && metaSnap.data()?.calculated) {
+      console.log("⚠️ Already calculated");
+      return;
+    }
+
+    // ✅ GET QUESTIONS
+    const qSnap = await getDocs(
+      query(collection(db, "questions"), where("date", "==", today)),
+    );
+
+    if (qSnap.empty) {
+      console.log("❌ No questions");
+      return;
+    }
+
+    const questions = qSnap.docs.map((d) => d.data());
+
+    const hasMissing = questions.some((q) => !q.correctAnswer);
+
+    if (hasMissing) {
+      console.log("❌ Missing answers → STOP");
+      return;
+    }
+
+    // ✅ CORRECT MAP
+    const correctMap: any = {};
+
+    qSnap.docs.forEach((doc) => {
+      correctMap[doc.id] = String(doc.data().correctAnswer).toLowerCase();
+    });
+
+    // ✅ GET VOTES
+    const votesSnap = await getDocs(
+      query(collection(db, "votes"), where("date", "==", today)),
+    );
+
+    const userScores: any = {};
+
+    votesSnap.docs.forEach((doc) => {
+      const data = doc.data();
+
+      const correct = correctMap[data.questionId];
+      if (!correct) return;
+
+      if (String(data.answer).toLowerCase() === correct) {
+        userScores[data.userId] = (userScores[data.userId] || 0) + 1;
+      }
+    });
+
+    console.log("Votes count:", votesSnap.size);
+    console.log("Questions count:", qSnap.size);
+    console.log("Correct map:", correctMap);
+    console.log("User scores:", userScores);
+    console.log("🏆 Scores:", userScores);
+
+    // ✅ UPDATE USERS (score + weekly BOTH HERE)
+    const dayIndex = new Date().getDay(); // 0–6
+
+    try {
+      for (const uid in userScores) {
+        const userRef = doc(db, "users", uid);
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) continue;
+
+        const data = userSnap.data();
+
+        let weekly = data.weekly || ["0/4", "0/4", "0/4", "0/4", "0/4"];
+
+        // reset Saturday
+        if (dayIndex === 6) {
+          weekly = ["0/4", "0/4", "0/4", "0/4", "0/4"];
+        }
+
+        // update Monday–Friday
+        if (dayIndex >= 1 && dayIndex <= 5) {
+          weekly[dayIndex - 1] = `${userScores[uid]}/4`;
+        }
+
+        await updateDoc(userRef, {
+          score: increment(userScores[uid]),
+          weekly: weekly,
+        });
+      }
+
+      await setDoc(metaRef, {
+        calculated: true,
+        date: today,
+      });
+
+      console.log("✅ DONE");
+    } catch (err) {
+      console.error("❌ Error updating scores:", err);
+    }
+  };
+
+  if (loading)
+    return (
+      <section className="h-screen flex items-center justify-center">
         <p>Loading questions...</p>
-      </section>;
+      </section>
+    );
 
   if (answered) {
     return (
+      <section className="container h-screen flex items-center justify-center">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          <h2 className="max-w-4xl mx-auto text-white mb-6">
+            You have answered today's questions. Thank you.
+          </h2>
 
- <section className="container h-screen flex items-center justify-center">
-  <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-    
-    <h2 className="max-w-4xl mx-auto text-white mb-6">
-      You have answered today's questions. Thank you.
-    </h2>
+          <Button
+            className="white-text"
+            text="View Leaderboard"
+            onClick={() => (window.location.href = "/leaderboard")}
+          />
 
-    <Button
-      className="white-text"
-      text="View Leaderboard"
-      onClick={() => (window.location.href = "/leaderboard")}
-    />
-
-    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-  
-  </div>
-</section>
-
-
+          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+        </div>
+      </section>
     );
   }
 
   if (!canAnswer && savedQuestions.length > 0) {
-  return (
-<section className="container h-screen flex items-center justify-center">
-  <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+    return (
+      <section className="container h-screen flex items-center justify-center">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          {/* Title */}
+          <h2 className="max-w-4xl mx-auto text-white mb-3 text-2xl font-semibold">
+            Questions Saved
+          </h2>
 
-    {/* Title */}
-    <h2 className="max-w-4xl mx-auto text-white mb-3 text-2xl font-semibold">
-      Questions Saved
-    </h2>
+          {/* Subtitle */}
+          <p className="max-w-3xl mx-auto text-gray-300 mb-6">
+            You can submit the correct answers after{" "}
+            <span className="text-[#FAB31E] font-semibold">10:30 AM</span> once
+            voting ends. Until then, you can still predict the outcomes.
+          </p>
 
-    {/* Subtitle */}
-    <p className="max-w-3xl mx-auto text-gray-300 mb-6">
-      You can submit the correct answers after <span className="text-[#FAB31E] font-semibold">10:30 AM</span> once voting ends. 
-      Until then, you can still predict the outcomes.
-    </p>
+          <Button text="Predict" href="/" className=" white-text" />
 
-    <Button 
-    text="Predict"
-    href="/" 
-    className=" white-text"/>
-
-    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-
-  </div>
-</section>
-  );
-}
+          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+        </div>
+      </section>
+    );
+  }
   return (
     <div className=" container min-h-[calc(100vh-160px)] lg:pt-40 pt-30 lg:py-20 md:py-15 py-10 ">
       <h1 className="text-2xl font-bold mb-6">Add 4 Questions</h1>
@@ -462,49 +440,50 @@ console.log("User scores:", userScores);
 
         {/* Right yellow stripe preserved */}
         <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-      
-      {/* QUESTION BOX */}
 
-      {savedQuestions.length > 0 && (
-        <div className="">
-          {savedQuestions.map((q) => (
-            <div key={q.id} className="mb-4 gap-6">
-              <p className="mb-2 font-medium white-text">{q.question}</p>
+        {/* QUESTION BOX */}
 
-             <div className="flex gap-4">
-  <button
-    onClick={() => setAnswer(q.id, "yes")}
-    className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-      answers[q.id] === "yes"
-        ? "bg-[#fab31e] text-black"
-        : "text-white hover:bg-[#fab31e] hover:text-black"
-    }`}
-  >
-    Yes
-  </button>
+        {savedQuestions.length > 0 && (
+          <div className="">
+            {savedQuestions.map((q) => (
+              <div key={q.id} className="mb-4 gap-6">
+                <p className="mb-2 font-medium white-text">{q.question}</p>
 
-  <button
-    onClick={() => setAnswer(q.id, "no")}
-    className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
-      answers[q.id] === "no"
-        ? "bg-[#fab31e] text-black"
-        : "text-white hover:bg-[#fab31e] hover:text-black"
-    }`}
-  >
-    No
-  </button>
-</div>
-            </div>
-          ))}
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setAnswer(q.id, "yes")}
+                    className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+                      answers[q.id] === "yes"
+                        ? "bg-[#fab31e] text-black"
+                        : "text-white hover:bg-[#fab31e] hover:text-black"
+                    }`}
+                  >
+                    Yes
+                  </button>
+
+                  <button
+                    onClick={() => setAnswer(q.id, "no")}
+                    className={`cursor-pointer px-8 py-3 rounded-lg border border-[#fab31e] transition ${
+                      answers[q.id] === "no"
+                        ? "bg-[#fab31e] text-black"
+                        : "text-white hover:bg-[#fab31e] hover:text-black"
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            ))}
 
            <Button
-              text="Save Answers"
-              onClick={saveAnswers}
-              className="white-text mt-6"
-            />
-        </div>
-      )}
-    </div>
+  text={savingAnswers ? "Saving..." : "Save Answers"}
+  onClick={saveAnswers}
+  className="white-text mt-6"
+  disabled={savingAnswers}
+/>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
