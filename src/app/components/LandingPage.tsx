@@ -859,55 +859,76 @@ const submitVotes = async (uid: any) => {
 
             {/* We no longer use step === totalSteps so the above submit works directly on the last step */}
 
-            {showPinPopup && (
-              <div
-                className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-                onClick={() => {
-                  setShowPinPopup(false);
-                  setPin("");
-                  setPinError("");
-                  setPendingSubmit(false);
-                }}
-              >
-                <div
-                  className="bg-white p-6 rounded-[20px] w-[400px] max-w-[90%]"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <h4 className="font-semibold mb-4 text-center">
-                    Enter Your 4 Digit PIN
-                  </h4>
+          {showPinPopup && (
+  <div
+    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+    onClick={() => {
+      setShowPinPopup(false);
+      setPin("");
+      setPinError("");
+      setPendingSubmit(false);
+    }}
+  >
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        verifyPin();
+      }}
+      onClick={(e) => e.stopPropagation()}
+      className="bg-white p-6 rounded-[20px] w-[400px] max-w-[90%]"
+    >
+      <h4 className="font-semibold mb-4 text-center">
+        Enter Your 4 Digit PIN
+      </h4>
 
-                  <div className="relative">
-                    <input
-                      type={showPin ? "text" : "password"}
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value)}
-                      placeholder="4 Digit PIN"
-                      maxLength={4}
-                      className="w-full border p-2 rounded mb-2  tracking-widest"
-                    />
+      <div className="relative">
+        <input
+          type={showPin ? "text" : "password"}
+          value={pin}
+          onChange={(e) => {
+            const value = e.target.value;
 
-                    <button
-                      type="button"
-                      onClick={() => setShowPin(!showPin)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-black opacity-80 hover:opacity-100 transition cursor-pointer"
-                    >
-                      {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
-                  </div>
+            if (!/^\d*$/.test(value)) {
+              setPinError("PIN must contain only numbers");
+              return;
+            }
 
-                  {pinError && (
-                    <p className="text-red-500 text-sm mb-3 ">{pinError}</p>
-                  )}
+            if (value.length > 4) return;
 
-                  <Button
-                    onClick={verifyPin}
-                    className="black-text"
-                    text="Verify"
-                  />
-                </div>
-              </div>
-            )}
+            setPin(value);
+
+            if (value.length !== 4) {
+              setPinError("PIN must be exactly 4 digits");
+            } else {
+              setPinError("");
+            }
+          }}
+          placeholder="4 Digit PIN"
+          maxLength={4}
+          className="w-full border p-2 rounded mb-2 tracking-widest"
+        />
+
+       <button
+  type="button"
+  onClick={() => setShowPin(!showPin)}
+  className="absolute right-3 top-1/5 flex items-center text-black opacity-80 hover:opacity-100 transition cursor-pointer"
+>
+  {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+</button>
+      </div>
+
+      {pinError && (
+        <p className="text-red-500 text-sm mb-3">{pinError}</p>
+      )}
+
+      <Button
+        type="submit"
+        className="black-text"
+        text="Verify"
+      />
+    </form>
+  </div>
+)}
           </div>
         </div>
 

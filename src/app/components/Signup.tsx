@@ -86,7 +86,7 @@ window.dispatchEvent(new Event("pin-login"));
 
       alert("Signup successful! Welcome!");
 
-      router.push("/");
+      router.push("/leaderboard");
     } catch (err: any) {
       console.error(err);
 
@@ -159,6 +159,11 @@ window.dispatchEvent(new Event("pin-login"));
       <div className="flex container items-center justify-center">
         <form
           onSubmit={handleSignup}
+           onKeyDown={(e) => {
+    if (e.key === "Enter") {
+      handleSignup(e);
+    }
+  }}
           className="relative  bg-black lg:p-10 p-6 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]"
         >
              <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>

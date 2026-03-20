@@ -34,33 +34,9 @@ export default function AllQuestions() {
 
   const router = useRouter();
 
-  // 🔐 ADMIN CHECK (supports auth + PIN)
-  useEffect(() => {
-    const checkAdmin = async () => {
-      let uid: string | null = null;
-
-      const user = auth.currentUser;
-      if (user) uid = user.uid;
-
-      if (!uid) {
-        const pinUser = localStorage.getItem("pinUser");
-        if (pinUser) uid = JSON.parse(pinUser).uid;
-      }
-
-      if (!uid) return router.push("/");
-
-      const snap = await getDoc(doc(db, "users", uid));
-
-      if (!snap.exists() || snap.data().role !== "admin") {
-        router.push("/");
-        return;
-      }
-
-      setPageLoading(false);
-    };
-
-    checkAdmin();
-  }, []);
+ useEffect(() => {
+  setPageLoading(false);
+}, []);
 
   // 🔥 LOAD ALL DATES
   useEffect(() => {

@@ -67,6 +67,40 @@ useEffect(() => {
   year: "numeric",
 });
 
+
+// 🇮🇳 India time
+const now = new Date(
+  new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+);
+
+// get day (0=Sun, 1=Mon...)
+const day = now.getDay();
+
+// convert to Monday-based index (Mon=0, Fri=4)
+const mondayIndex = day === 0 ? 6 : day - 1;
+
+// get current Monday (start of this week)
+const currentMonday = new Date(now);
+currentMonday.setDate(now.getDate() - mondayIndex);
+currentMonday.setHours(0, 0, 0, 0);
+
+// 🔥 FIXED START DATE (IMPORTANT)
+// set this to your system start Monday (VERY IMPORTANT)
+const systemStart = new Date("2025-01-06"); // Monday
+
+// difference in weeks
+const diffTime = currentMonday.getTime() - systemStart.getTime();
+const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
+
+// 2-week cycle (1 or 2)
+const activeWeek = (diffWeeks % 2) + 1;
+
+const getWeekLabel = (weekNumber: number) => {
+  if (weekNumber === activeWeek) return "Current Week";
+  if (weekNumber === (activeWeek === 1 ? 2 : 1)) return "Coming Week";
+  return "Last Week";
+};
+
   return (
     <div className="container min-h-[calc(100vh-160px)] pt-28 pb-16">
       {/* TITLE */}
@@ -93,7 +127,7 @@ useEffect(() => {
             />
 
             <p className="font-semibold text-lg">{top3[1].name}</p>
-            <p className="text-gray-500 text-sm">{top3[1].email}</p>
+            {/* <p className="text-gray-500 text-sm">{top3[1].email}</p> */}
 
             <p className="mt-3 flex items-center justify-center gap-2 text-[#fab31e] font-bold text-xl">
   <img
@@ -120,7 +154,7 @@ className="bg-[#fab31e] text-white shadow-2xl rounded-[20px] p-8 w-[55%] md:w-80
             />
 
             <p className="text-xl font-bold">{top3[0].name}</p>
-            <p className="text-sm opacity-90">{top3[0].email}</p>
+            {/* <p className="text-sm opacity-90">{top3[0].email}</p> */}
 
             <p className="mt-3 flex items-center justify-center gap-2 text-white font-bold text-xl">
   <img
@@ -145,7 +179,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
             />
 
             <p className="font-semibold text-lg">{top3[2].name}</p>
-            <p className="text-gray-500 text-sm">{top3[2].email}</p>
+            {/* <p className="text-gray-500 text-sm">{top3[2].email}</p> */}
 
             <p className="mt-3 flex items-center justify-center gap-2 text-[#fab31e] font-bold text-xl">
   <img
@@ -259,77 +293,159 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
       {/* DESKTOP TABLE */}
 
       <div className="hidden md:block overflow-x-auto bg-white shadow-lg rounded-[20px]">
-        <table className="w-full text-left">
-          <thead className="bg-[#fab31e] text-white">
-            <tr>
-              <th className="p-4">Rank</th>
-              <th className="p-4">Player</th>
-              <th className="p-4">Email</th>
-              <th className="p-4">Mon | Tue | Wed | Thu | Fri</th> 
-              <th className="p-4">Score</th>
-            </tr>
-          </thead>
+  <table className="w-full text-left border-collapse">
+    
+    {/* HEADER */}
+<thead className="bg-[#fab31e] text-white">
+  <tr>
+    <th className="p-4 border-r border-black" rowSpan={2}>Rank</th>
+    <th className="p-4 border-r border-black" rowSpan={2}>Player</th>
 
-          <tbody>
-  {users.map((u, i) => (
-   <tr key={u.id} className="border-t hover:bg-gray-50">
-  <td className="p-4 font-semibold">#{i + 1}</td>
+    {/* Week 1 */}
+<th className="py-2 text-center  border-r border-black" colSpan={5}>
+  {getWeekLabel(2)}
+</th>
+   <th className="py-2 text-center" colSpan={5}>
+  {getWeekLabel(1)}
+</th>
 
-  <td className="p-4 flex items-center gap-3 capitalize">
+
+    <th className="p-4 border-l border-black" rowSpan={2}>Score</th>
+  </tr>
+
+  <tr>
+    {/* WEEK 1 */}
+    <th className="p-2 text-center">Mon</th>
+    <th className="p-2 text-center">Tue</th>
+    <th className="p-2 text-center">Wed</th>
+    <th className="p-2 text-center">Thu</th>
+    <th className="p-2 text-center border-r border-black">Fri</th>
+
+    {/* WEEK 2 */}
+    <th className="p-2 text-center">Mon</th>
+    <th className="p-2 text-center">Tue</th>
+    <th className="p-2 text-center">Wed</th>
+    <th className="p-2 text-center">Thu</th>
+    <th className="p-2 text-center">Fri</th>
+  </tr>
+</thead>
+
+    {/* BODY */}
+    <tbody>
+      {users.map((u, i) => {
+        const week1 = u.weekly?.slice(0, 5) || ["0/4","0/4","0/4","0/4","0/4"];
+        const week2 =
+  u.weekly && u.weekly.length >= 10
+    ? u.weekly.slice(5, 10)
+    : ["0/4","0/4","0/4","0/4","0/4"];
+
+        return (
+        <tr key={u.id} className="border-t hover:bg-gray-50 text-center">
+
+  {/* RANK */}
+  <td className="p-4 font-semibold border-r border-black">
+    #{i + 1}
+  </td>
+
+  {/* PLAYER */}
+  <td className="p-4 flex items-center gap-3 capitalize text-left border-r border-black">
     <img src={u.avatar} className="w-8 h-8 rounded-full object-cover" />
     {u.name}
   </td>
 
-  <td className="p-4 text-gray-600">{u.email}</td>
+  {/* WEEK 1 */}
+  {week1.map((d, idx) => (
+    <td
+      key={"w1-" + idx}
+      className={`p-3 ${idx === 4 ? "border-r border-black" : ""}`}
+    >
+      {d}
+    </td>
+  ))}
 
-<td className="p-4 text-gray-700">
-  {u.weekly?.join(" | ") || "0/4 | 0/4 | 0/4 | 0/4 | 0/4"}
-</td>
-<td className="p-4 font-bold text-[#fab31e]">
-<div className="flex items-center gap-2 text-[#fab31e] font-bold">
-  <img
-    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
-    className="w-4 h-4"
-  />
-  {u.score || 0}
-</div>
-</td>
+  {/* WEEK 2 */}
+  {week2.map((d, idx) => (
+    <td key={"w2-" + idx} className="p-3">
+      {d}
+    </td>
+  ))}
+
+  {/* SCORE */}
+  <td className="p-4 font-bold text-[#fab31e] border-l border-black">
+    <div className="flex items-center justify-center gap-2">
+      <img
+        src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+        className="w-4 h-4"
+      />
+      {u.score || 0}
+    </div>
+  </td>
 
 </tr>
-  ))}
-</tbody>
-        </table>
-      </div>
+        );
+      })}
+    </tbody>
+
+  </table>
+</div>
 
       {/* MOBILE LIST */}
 
-      <div className="md:hidden space-y-3">
-        {users.map((u, i) => (
-          <div
-            key={u.id}
-            className="bg-white shadow rounded-[20px] p-4 flex justify-between items-center"
-          >
-            <div className="flex items-center gap-3">
-              <span className="font-semibold">#{i + 1}</span>
+     <div className="md:hidden space-y-3">
+  {users.map((u, i) => {
+    const week1 = u.weekly?.slice(0, 5) || ["0/4","0/4","0/4","0/4","0/4"];
+    const week2 =
+      u.weekly && u.weekly.length >= 10
+        ? u.weekly.slice(5, 10)
+        : ["0/4","0/4","0/4","0/4","0/4"];
 
-              <img src={u.avatar} className="w-10 h-10 rounded-full object-cover" />
+    // 🔥 show CURRENT WEEK only
+    const currentWeekData = activeWeek === 1 ? week1 : week2;
 
-              <div>
-                <p className="font-medium capitalize">{u.name}</p>
-               <p className="text-[10px] text-gray-500">{u.email}</p>
-              </div>
+    return (
+      <div
+        key={u.id}
+        className="bg-white shadow rounded-[20px] p-4 flex justify-between items-center"
+      >
+        <div className="flex items-center gap-3">
+          <span className="font-semibold">#{i + 1}</span>
+
+          <img
+            src={u.avatar}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+
+          <div>
+            <p className="font-medium capitalize">{u.name}</p>
+
+            {/* 🔥 WEEK SCORING (NEW) */}
+            <div className="flex gap-1 text-[11px] text-gray-500 mt-1">
+             
+
+                {week1.map((d, idx) => (
+    <td
+      key={"w1-" + idx}
+      className={`p-3 bg-gray-100 px-1.5 py-[2px] rounded ${idx === 4 ? "" : ""}`}
+    >
+      {d}
+    </td>
+  ))}
             </div>
-
-            <div className="flex items-center gap-2 font-bold text-[#fab31e]">
-  <img
-    src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
-    className="w-4 h-4"
-  />
-  {u.score || 0}
-</div>
           </div>
-        ))}
+        </div>
+
+        {/* SCORE */}
+        <div className="flex items-center gap-2 font-bold text-[#fab31e]">
+          <img
+            src="https://cdn-icons-png.flaticon.com/512/2933/2933116.png"
+            className="w-4 h-4"
+          />
+          {u.score || 0}
+        </div>
       </div>
+    );
+  })}
+</div>
     </div>
   );
 }

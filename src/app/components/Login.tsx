@@ -60,7 +60,7 @@ export default function Login(){
 
    window.dispatchEvent(new Event("pin-login"))
 
-   router.push("/")
+   router.push("/leaderboard")
 
   }
   catch(err){
@@ -78,7 +78,13 @@ export default function Login(){
 
  <div className="container lg:py-20 md:py-15 py-10 flex items-center justify-center min-h-screen">
 
-  <div className="relative bg-black lg:p-10 p-6 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]">
+<form
+  onSubmit={(e) => {
+    e.preventDefault()
+    login()
+  }}
+  className="relative bg-black lg:p-10 p-6 shadow-md w-96 space-y-4 overflow-hidden rounded-[20px]"
+>
 
    <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-5 h-full bg-[#FAB31E]"></div>
 
@@ -129,7 +135,7 @@ export default function Login(){
   </a>
 </p>
 
-  </div>
+  </form>
 
  </div>
 
