@@ -29,18 +29,48 @@ export default function DesktopNav() {
 
   // 🔥 LOAD USER + ROLE + CURATOR
   useEffect(() => {
-    const checkCurator = async (uid: string) => {
-      const now = new Date();
-      const today = now.toISOString().split("T")[0];
+const checkCurator = async (uid: string) => {
+  const now = new Date();
 
-      const curatorSnap = await getDoc(doc(db, "dailyCurator", today));
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
 
-      if (curatorSnap.exists() && curatorSnap.data().curatorId === uid) {
-        setIsCurator(true);
-      } else {
-        setIsCurator(false);
-      }
-    };
+  const today = `${year}-${month}-${day}`;
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const sixPM = 18 * 60;
+
+  let activeDate;
+
+  if (currentMinutes < sixPM) {
+    activeDate = today;
+  } else {
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+
+    const ty = t.getFullYear();
+    const tm = String(t.getMonth() + 1).padStart(2, "0");
+    const td = String(t.getDate()).padStart(2, "0");
+
+    activeDate = `${ty}-${tm}-${td}`;
+  }
+
+  console.log("CHECKING DATE:", activeDate); // 🔥 debug
+
+  const curatorSnap = await getDoc(doc(db, "dailyCurator", activeDate));
+
+  console.log("CURATOR DATA:", curatorSnap.data()); // 🔥 debug
+
+  if (curatorSnap.exists() && curatorSnap.data()?.curatorId === uid) {
+    setIsCurator(true);
+  } else {
+    setIsCurator(false);
+  }
+};
+
+
+
 const loadPinUser = async () => {
   const pinUser = localStorage.getItem("pinUser");
 
