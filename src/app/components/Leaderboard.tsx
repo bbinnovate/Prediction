@@ -93,12 +93,19 @@ const diffTime = currentMonday.getTime() - systemStart.getTime();
 const diffWeeks = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 7));
 
 // 2-week cycle (1 or 2)
-const activeWeek = (diffWeeks % 2) + 1;
+const cycle = diffWeeks % 3;
+
+// 0 → week1 current
+// 1 → week2 current
+// 2 → reset cycle
+
+const currentWeekIndex = cycle === 0 ? 1 : cycle === 1 ? 2 : 1;
+const lastWeekIndex = currentWeekIndex === 1 ? 2 : 1;
 
 const getWeekLabel = (weekNumber: number) => {
-  if (weekNumber === activeWeek) return "Current Week";
-  if (weekNumber === (activeWeek === 1 ? 2 : 1)) return "Coming Week";
-  return "Last Week";
+  if (weekNumber === currentWeekIndex) return "Current Week";
+  if (weekNumber === lastWeekIndex) return "Last Week";
+  return "Coming Week";
 };
 
   return (
@@ -393,15 +400,12 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
 
      <div className="md:hidden space-y-3">
   {users.map((u, i) => {
-    const week1 = u.weekly?.slice(0, 5) || ["0/4","0/4","0/4","0/4","0/4"];
-    const week2 =
-      u.weekly && u.weekly.length >= 10
-        ? u.weekly.slice(5, 10)
-        : ["0/4","0/4","0/4","0/4","0/4"];
+   const weekA = u.weekly?.slice(0, 5) || ["0/4","0/4","0/4","0/4","0/4"];
+const weekB = u.weekly?.slice(5, 10) || ["0/4","0/4","0/4","0/4","0/4"];
 
-    // 🔥 show CURRENT WEEK only
-    const currentWeekData = activeWeek === 1 ? week1 : week2;
-
+// rotate based on current week
+const currentWeek = currentWeekIndex === 1 ? weekA : weekB;
+const lastWeek = currentWeekIndex === 1 ? weekB : weekA;
     return (
       <div
         key={u.id}
@@ -419,10 +423,10 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
             <p className="font-medium capitalize">{u.name}</p>
 
             {/* 🔥 WEEK SCORING (NEW) */}
-            <div className="flex gap-1 text-[11px] text-gray-500 mt-1">
+            {/* <div className="flex gap-1 text-[11px] text-gray-500 mt-1">
              
 
-                {week1.map((d, idx) => (
+                {weekA.map((d, idx) => (
     <td
       key={"w1-" + idx}
       className={`p-3 bg-gray-100 px-1.5 py-[2px] rounded ${idx === 4 ? "" : ""}`}
@@ -430,7 +434,7 @@ className="bg-white shadow-xl rounded-[20px] p-6 w-[45%] md:w-64 text-center bor
       {d}
     </td>
   ))}
-            </div>
+            </div> */}
           </div>
         </div>
 
