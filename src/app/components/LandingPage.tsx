@@ -92,8 +92,6 @@ const progressPercentage =
   const [globalTimeLeft, setGlobalTimeLeft] = useState("");
   const [pinError, setPinError] = useState("");
   const [timeProgress, setTimeProgress] = useState(0);
-  const [hasVotedState, setHasVotedState] = useState<boolean | null>(null);
-  const [noQuestionsToday, setNoQuestionsToday] = useState(false);
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -134,58 +132,38 @@ const progressPercentage =
 
   useEffect(() => {
     if (checkingRole || checkingVote || finished) return;
-  const today = new Date().toLocaleDateString("en-CA");
 
-   const loadQuestions = async () => {
-  try {
-    const today = new Date().toLocaleDateString("en-CA", {
-  timeZone: "Asia/Kolkata",
-});
+    const loadQuestions = async () => {
+      const q = query(
+        collection(db, "questions"),
+        orderBy("createdAt", "desc"),
+        limit(20), // fetch more so we can remove duplicates safely
+      );
 
-    const q = query(
-      collection(db, "questions"),
-      where("date", "==", today),
-      orderBy("createdAt", "desc"),
-      limit(20)
-    );
+      const snap = await getDocs(q);
 
-    const snap = await getDocs(q);
+      const raw: Question[] = snap.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Question, "id">),
+      }));
 
-    if (snap.empty) {
-      setNoQuestionsToday(true);
-      return;
-    }
+const seen = new Set<string>();
+const unique: Question[] = [];
 
-    const raw: Question[] = snap.docs.map((doc) => {
-      const data = doc.data() as Omit<Question, "id">;
-      return { id: doc.id, ...data };
-    });
+for (const q of raw) {
+  const text = q.question?.trim().toLowerCase();
 
-    const seen = new Set<string>();
-    const unique: Question[] = [];
-
-    for (const q of raw) {
-      const text = q.question?.trim().toLowerCase();
-
-      if (!seen.has(text)) {
-        seen.add(text);
-        unique.push(q);
-      }
-
-      if (unique.length === 4) break;
-    }
-
-    if (unique.length === 0) {
-      setNoQuestionsToday(true);
-    } else {
-      setQuestions(unique); // ✅ FIX
-    }
-
-  } catch (err) {
-    console.error("LOAD QUESTIONS ERROR:", err);
-    setNoQuestionsToday(true); // fallback
+  if (!seen.has(text)) {
+    seen.add(text);
+    unique.push(q);
   }
-};
+
+  // ✅ STOP once we have 4 UNIQUE
+  if (unique.length === 4) break;
+}
+
+setQuestions(unique);
+    };
 
     loadQuestions();
   }, [checkingRole, checkingVote, role, finished]);
@@ -338,8 +316,7 @@ const progressPercentage =
       const minute = now.getMinutes();
 
       // BEFORE 6 AM
-           if (hour < 6) {
-
+      if (hour < 6) {
         setNotStarted(true);
         return;
       }
@@ -381,9 +358,7 @@ const progressPercentage =
 
 const hasVotedToday = async (uid: any) => {
   try {
-    if (hasVotedState !== null) return hasVotedState;
-
-    const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const today = new Date().toLocaleDateString("en-CA");
 
     const q = query(
       collection(db, "votes"),
@@ -394,11 +369,7 @@ const hasVotedToday = async (uid: any) => {
 
     const snap = await getDocs(q);
 
-    const result = !snap.empty;
-
-    setHasVotedState(result);
-
-    return result;
+    return !snap.empty;
 
   } catch (err) {
     console.error("Vote check failed:", err);
@@ -532,7 +503,16 @@ const submitVotes = async (uid: any) => {
       setPin("");
 
       // start quiz only after valid login
-      setQuizStarted(true);
+      // 🚨 CHECK BEFORE START
+const voted = await hasVotedToday(uid);
+
+if (voted) {
+  setAlreadyVotedError(true);
+  setShowPinPopup(false);
+  return;
+}
+
+setQuizStarted(true);
       setTimeLeft(10);
     } catch (err) {
       console.error(err);
@@ -641,8 +621,8 @@ const submitVotes = async (uid: any) => {
       </section>
     );
   }
-
-  if (checkingRole) {
+  
+if (checkingRole || checkingVote) {
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
         <p className="black-text">Loading...</p>
@@ -686,37 +666,10 @@ const submitVotes = async (uid: any) => {
     );
   }
 
-  if (noQuestionsToday) {
-  return (
-         <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
-        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-          
-        
-        <h2 className="text-3xl text-yellow-400 mb-4">
-          No Questions Today 🚫
-        </h2>
-
-        <p className="text-gray-300">
-          Today’s curator{" "}
-          <span className="text-highlight font-semibold capitalize">
-            {todayCurator?.name || "Unknown"}
-          </span>{" "}
-          hasn’t assigned questions yet.
-        </p>
-           <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-
-      </div>
-    </section>
-  );
-}
-
-
   if (finished) {
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
         <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-          
-          
           <h2 className="text-4xl text-highlight mb-4">Thank You 🎉</h2>
 
           <p className="text-gray-300 text-lg">
