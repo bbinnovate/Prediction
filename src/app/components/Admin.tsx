@@ -112,6 +112,19 @@ setUsers(
   return () => unsub();
 }, []);
 
+
+useEffect(() => {
+  const run = async () => {
+    await fetch("/api/auto-assign-curator")
+  }
+
+  run()
+
+  const interval = setInterval(run, 300000)
+
+  return () => clearInterval(interval)
+}, [])
+
   /* ---------------- DATE CLICK ---------------- */
 
   const handleDateClick = (info: any) => {
@@ -192,28 +205,43 @@ setUsers(
   };
 
 const removeAssignment = async (eventInfo: any) => {
+  const date = eventInfo.event.startStr
 
-  const date = eventInfo.event.startStr;
-
-  if (!confirm(`Remove curator from ${date}?`)) return;
+  if (!confirm(`Remove curator from ${date}?`)) return
 
   try {
+    const ref = doc(db, "dailyCurator", date)
+    const snap = await getDoc(ref)
 
-    // delete from firestore
-    await deleteDoc(doc(db, "dailyCurator", date));
+    if (!snap.exists()) return
 
-    // remove from UI state
-    setEvents((prev) => prev.filter((e) => e.id !== date));
+    const data = snap.data()
 
-    // remove from calendar instance
-    eventInfo.event.remove();
+    // delete
+    await deleteDoc(ref)
+
+    // send cancellation email
+    await fetch("/api/send-cancel-email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: data.email,
+        name: data.name,
+        date,
+      }),
+    })
+
+    // UI update
+    setEvents((prev) => prev.filter((e) => e.id !== date))
+    eventInfo.event.remove()
 
   } catch (err) {
-    console.error("DELETE ERROR:", err);
-    alert("Failed to remove curator");
+    console.error("DELETE ERROR:", err)
+    alert("Failed to remove curator")
   }
-
-};
+}
   /* ---------------- UI ---------------- */
   const renderEventContent = (eventInfo: any) => {
     return (
@@ -234,7 +262,6 @@ const removeAssignment = async (eventInfo: any) => {
       </div>
     );
   };
-
 
   const resetAllScores = async () => {
   if (!confirm("Reset ALL user scores to 0?")) return;

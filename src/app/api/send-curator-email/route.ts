@@ -4,7 +4,7 @@ export async function POST(req: Request) {
 
   const { email, name, assignDate } = await req.json()
 
-  const d = new Date(assignDate)
+  const d = new Date(assignDate) 
 const cleanName =
 name?.trim().charAt(0).toUpperCase() + name?.trim().slice(1).toLowerCase()
   // format assigned date
@@ -70,3 +70,6 @@ Go To Curator Page
     )
   }
 }
+
+
+

@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/auto-assign-curator",
+      "schedule": "30 12 * * *"
+    }
+  ]
+}

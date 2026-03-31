@@ -68,15 +68,12 @@ export default function LandingPage() {
   const [answers, setAnswers] = useState<any>({});
   const [finished, setFinished] = useState(false);
   const [showPin, setShowPin] = useState(false);
-
   // Progress calculations
   const totalSteps = questions?.length || 0;
-
   // They want the percentage text to hit 100% on the last question (step === totalSteps - 1).
-const answeredCount = Object.keys(answers).length;
-
-const progressPercentage =
-  totalSteps > 0 ? Math.round((answeredCount / totalSteps) * 100) : 0;
+  const answeredCount = Object.keys(answers).length;
+  const progressPercentage =
+    totalSteps > 0 ? Math.round((answeredCount / totalSteps) * 100) : 0;
   const [role, setRole] = useState<string | null>(null);
   const [checkingRole, setCheckingRole] = useState(true);
   const [showPinPopup, setShowPinPopup] = useState(false);
@@ -92,6 +89,14 @@ const progressPercentage =
   const [globalTimeLeft, setGlobalTimeLeft] = useState("");
   const [pinError, setPinError] = useState("");
   const [timeProgress, setTimeProgress] = useState(0);
+
+  const todayIST = new Date().toLocaleString("en-US", {
+  timeZone: "Asia/Kolkata",
+})
+
+const day = new Date(todayIST).getDay()
+
+const isWeekend = day === 0 || day === 6    
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -147,22 +152,25 @@ const progressPercentage =
         ...(doc.data() as Omit<Question, "id">),
       }));
 
-const seen = new Set<string>();
-const unique: Question[] = [];
+      const seen = new Set<string>();
+      const unique: Question[] = [];
 
-for (const q of raw) {
-  const text = q.question?.trim().toLowerCase();
+      for (const q of raw) {
+        const text = q.question?.trim().toLowerCase();
 
-  if (!seen.has(text)) {
-    seen.add(text);
-    unique.push(q);
-  }
+        if (!seen.has(text)) {
+          seen.add(text);
+          unique.push(q);
+        }
 
-  // ✅ STOP once we have 4 UNIQUE
-  if (unique.length === 4) break;
+        // ✅ STOP once we have 4 UNIQUE
+        if (unique.length === 4) break;
+      }
+
+      setQuestions(unique);
+      if (unique.length === 0) {
+  setQuestions([]) // keep empty
 }
-
-setQuestions(unique);
     };
 
     loadQuestions();
@@ -293,24 +301,23 @@ setQuestions(unique);
   }, [quizStarted, timeLeft, finished, step, totalSteps, questions]);
 
   useEffect(() => {
-  if (!quizStarted) return;
+    if (!quizStarted) return;
 
-  setTimeProgress(0);
+    setTimeProgress(0);
 
-  const interval = setInterval(() => {
-    setTimeProgress((prev) => {
-      const next = prev + 10; // 1000ms / 10s
-      return next > 100 ? 100 : next;
-    });
-  }, 100);
+    const interval = setInterval(() => {
+      setTimeProgress((prev) => {
+        const next = prev + 10; // 1000ms / 10s
+        return next > 100 ? 100 : next;
+      });
+    }, 100);
 
-  return () => clearInterval(interval);
-}, [step, quizStarted]);
+    return () => clearInterval(interval);
+  }, [step, quizStarted]);
 
   // Time window check
   useEffect(() => {
     const checkTimeAndVote = async () => {
-
       const now = new Date();
       const hour = now.getHours();
       const minute = now.getMinutes();
@@ -323,7 +330,6 @@ setQuestions(unique);
 
       // AFTER 10:30 AM
       if (hour > 10 || (hour === 10 && minute >= 30)) {
-
         let uid: any = null;
 
         const user = auth.currentUser;
@@ -335,7 +341,6 @@ setQuestions(unique);
         }
 
         if (uid) {
-
           const voted = await hasVotedToday(uid);
 
           if (voted) {
@@ -343,80 +348,76 @@ setQuestions(unique);
           } else {
             setTimeExpired(true);
           }
-
         } else {
           setTimeExpired(true);
         }
 
         return;
       }
-
     };
 
     checkTimeAndVote();
   }, []);
 
-const hasVotedToday = async (uid: any) => {
-  try {
-    const today = new Date().toLocaleDateString("en-CA");
+  const hasVotedToday = async (uid: any) => {
+    try {
+      const today = new Date().toLocaleDateString("en-CA");
 
-    const q = query(
-      collection(db, "votes"),
-      where("userId", "==", uid),
-      where("date", "==", today),
-      limit(1)
-    );
+      const q = query(
+        collection(db, "votes"),
+        where("userId", "==", uid),
+        where("date", "==", today),
+        limit(1),
+      );
 
-    const snap = await getDocs(q);
+      const snap = await getDocs(q);
 
-    return !snap.empty;
+      return !snap.empty;
+    } catch (err) {
+      console.error("Vote check failed:", err);
+      return false;
+    }
+  };
 
-  } catch (err) {
-    console.error("Vote check failed:", err);
-    return false;
-  }
-};
+  const submitVotes = async (uid: any) => {
+    if (finished) return;
 
-const submitVotes = async (uid: any) => {
-  if (finished) return;
+    setFinished(true);
 
-  setFinished(true);
+    try {
+      const today = new Date().toLocaleDateString("en-CA");
 
-  try {
-    const today = new Date().toLocaleDateString("en-CA");
+      const finalAnswers: any = {};
 
-    const finalAnswers: any = {};
+      // 🚨 FORCE ALL 4 QUESTIONS
+      questions.forEach((q) => {
+        finalAnswers[q.id] = answers[q.id] || "";
+      });
 
-    // 🚨 FORCE ALL 4 QUESTIONS
-    questions.forEach((q) => {
-      finalAnswers[q.id] = answers[q.id] || "";
-    });
+      await Promise.all(
+        Object.keys(finalAnswers).map((qid) =>
+          setDoc(doc(db, "votes", `${uid}_${today}_${qid}`), {
+            userId: uid,
+            questionId: qid,
+            answer: String(finalAnswers[qid]).trim().toLowerCase(), // "", "yes", "no"
+            date: today,
+            createdAt: new Date(),
+          }),
+        ),
+      );
 
-    await Promise.all(
-      Object.keys(finalAnswers).map((qid) =>
-        setDoc(doc(db, "votes", `${uid}_${today}_${qid}`), {
-          userId: uid,
-          questionId: qid,
-          answer: String(finalAnswers[qid]).trim().toLowerCase(), // "", "yes", "no"
-          date: today,
-          createdAt: new Date(),
-        })
-      )
-    );
+      await updateDoc(doc(db, "users", uid), {
+        lastPlayed: today,
+      });
 
-    await updateDoc(doc(db, "users", uid), {
-      lastPlayed: today,
-    });
-
-    localStorage.removeItem("pinUser");
-    await auth.signOut().catch(() => {});
-    window.dispatchEvent(new Event("pin-logout"));
-
-  } catch (err) {
-    console.error("Vote error:", err);
-    alert("Failed to submit votes");
-  }
-};
+      localStorage.removeItem("pinUser");
+      await auth.signOut().catch(() => {});
+      window.dispatchEvent(new Event("pin-logout"));
+    } catch (err) {
+      console.error("Vote error:", err);
+      alert("Failed to submit votes");
+    }
+  };
 
   const saveVotes = async () => {
     let uid: any = null;
@@ -504,15 +505,15 @@ const submitVotes = async (uid: any) => {
 
       // start quiz only after valid login
       // 🚨 CHECK BEFORE START
-const voted = await hasVotedToday(uid);
+      const voted = await hasVotedToday(uid);
 
-if (voted) {
-  setAlreadyVotedError(true);
-  setShowPinPopup(false);
-  return;
-}
+      if (voted) {
+        setAlreadyVotedError(true);
+        setShowPinPopup(false);
+        return;
+      }
 
-setQuizStarted(true);
+      setQuizStarted(true);
       setTimeLeft(10);
     } catch (err) {
       console.error(err);
@@ -607,6 +608,23 @@ setQuizStarted(true);
     setTimeLeft(10);
   };
 
+  if (isWeekend) {
+  return (
+     <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+        <h2 className="text-4xl text-yellow-400 mb-4">
+          It's Weekend 😎
+        </h2>
+
+        <p className="text-gray-300 text-lg">
+          No questions for today — chillll 💤
+        </p>
+        <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+      </div>
+    </section>
+  )
+}
+
   if (notStarted) {
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
@@ -621,8 +639,8 @@ setQuizStarted(true);
       </section>
     );
   }
-  
-if (checkingRole || checkingVote) {
+
+  if (checkingRole || checkingVote) {
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
         <p className="black-text">Loading...</p>
@@ -648,21 +666,20 @@ if (checkingRole || checkingVote) {
     );
   }
 
-    if (alreadyVotedError) {
+  if (alreadyVotedError) {
     return (
-
-  <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
-          <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-            <h2 className="text-4xl text-red-400 mb-4">
+      <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          <h2 className="text-4xl text-red-400 mb-4">
             You Already Voted Today
           </h2>
 
-            <p className="text-gray-300 text-lg">
-              Each user can vote only once per day.
-            </p>
-           <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
-          </div>
-        </section>
+          <p className="text-gray-300 text-lg">
+            Each user can vote only once per day.
+          </p>
+          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+        </div>
+      </section>
     );
   }
 
@@ -670,6 +687,7 @@ if (checkingRole || checkingVote) {
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
         <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          
           <h2 className="text-4xl text-highlight mb-4">Thank You 🎉</h2>
 
           <p className="text-gray-300 text-lg">
@@ -686,13 +704,36 @@ if (checkingRole || checkingVote) {
 
   const current = questions[step];
 
-  if (!current) {
-    return (
-      <section className="h-screen flex items-center justify-center">
-        <p className="black-text">Loading questions...</p>
-      </section>
-    );
-  }
+if (!current) {
+  return (
+      <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
+        <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
+          
+        
+        <h2 className="text-3xl text-red-400 mb-4">
+          No Questions Today ❌
+        </h2>
+
+        {todayCurator ? (
+          <p className="text-gray-300 text-lg">
+            Today's curator{" "}
+            <span className="text-[#fab31e] font-semibold capitalize">
+              {todayCurator.name}
+            </span>{" "}
+            has not added the questions yet.
+          </p>
+        ) : (
+          <p className="text-gray-300 text-lg">
+            No curator assigned for today.
+          </p>
+        )}
+
+          <div className="absolute -right-1 top-0 w-4 sm:w-4 md:w-6 h-full bg-[#FAB31E]"></div>
+
+      </div>
+    </section>
+  )
+}
 
   return (
     <section
@@ -739,41 +780,46 @@ if (checkingRole || checkingVote) {
           <div className="mt-6">
             {quizStarted && (
               <>
-               <div className="flex gap-3 items-center">
+                <div className="flex gap-3 items-center">
+                  {Array.from({ length: totalSteps }).map((_, idx) => {
+                    const answeredCount = Object.keys(answers).length;
 
-  {Array.from({ length: totalSteps }).map((_, idx) => {
+                    // completed questions
+                    if (idx < answeredCount) {
+                      return (
+                        <div
+                          key={idx}
+                          className="flex-1 h-2 rounded-full bg-[#fab31e]"
+                        />
+                      );
+                    }
 
-    const answeredCount = Object.keys(answers).length;
+                    // current active question
+                    if (idx === step) {
+                      return (
+                        <div
+                          key={idx}
+                          className="flex-1 h-2 rounded-full border border-gray-600 overflow-hidden"
+                        >
+                          <motion.div
+                            className="h-full bg-[#fab31e] "
+                            initial={{ width: "0%" }}
+                            animate={{ width: `${timeProgress}%` }}
+                            transition={{ ease: "linear", duration: 10 }}
+                          />
+                        </div>
+                      );
+                    }
 
-    // completed questions
-    if (idx < answeredCount) {
-      return (
-        <div key={idx} className="flex-1 h-2 rounded-full bg-[#fab31e]" />
-      );
-    }
-
-    // current active question
-    if (idx === step) {
-      return (
-        <div key={idx} className="flex-1 h-2 rounded-full border border-gray-600 overflow-hidden">
-          <motion.div
-            className="h-full bg-[#fab31e] "
-            initial={{ width: "0%" }}
-            animate={{ width: `${timeProgress}%` }}
-            transition={{ ease: "linear", duration: 10 }}
-          />
-        </div>
-      );
-    }
-
-    // future questions
-    return (
-      <div key={idx} className="flex-1 h-2 rounded-full border border-gray-600" />
-    );
-
-  })}
-
-</div>
+                    // future questions
+                    return (
+                      <div
+                        key={idx}
+                        className="flex-1 h-2 rounded-full border border-gray-600"
+                      />
+                    );
+                  })}
+                </div>
 
                 <div className="mt-3 text-sm text-gray-300 flex justify-between">
                   <div>
@@ -817,38 +863,36 @@ if (checkingRole || checkingVote) {
                 {step < totalSteps && current && (
                   <>
                     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-3">
+                      {/* TIMER */}
+                      <div className="order-1 sm:order-2 flex justify-end sm:justify-start">
+                        <div
+                          className={`text-lg font-bold px-3 py-1 rounded-full ${
+                            timeLeft <= 3
+                              ? "text-red-500 bg-red-500/10"
+                              : "text-highlight bg-highlight/10"
+                          }`}
+                        >
+                          00:{timeLeft.toString().padStart(2, "0")}
+                        </div>
+                      </div>
 
-  {/* TIMER */}
-  <div className="order-1 sm:order-2 flex justify-end sm:justify-start">
-    <div
-      className={`text-lg font-bold px-3 py-1 rounded-full ${
-        timeLeft <= 3
-          ? "text-red-500 bg-red-500/10"
-          : "text-highlight bg-highlight/10"
-      }`}
-    >
-      00:{timeLeft.toString().padStart(2, "0")}
-    </div>
-  </div>
-
-  {/* QUESTION */}
-  <div className="order-2 sm:order-1">
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={step}
-        initial={{ x: 120, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: -120, opacity: 0 }}
-        transition={{ duration: 0.35, ease: "easeInOut" }}
-      >
-        <h3 className="text-white text-left break-words leading-relaxed max-w-2xl text-lg sm:text-xl md:text-2xl">
-          {current.question}
-        </h3>
-      </motion.div>
-    </AnimatePresence>
-  </div>
-
-</div>
+                      {/* QUESTION */}
+                      <div className="order-2 sm:order-1">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={step}
+                            initial={{ x: 120, opacity: 0 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: -120, opacity: 0 }}
+                            transition={{ duration: 0.35, ease: "easeInOut" }}
+                          >
+                            <h3 className="text-white text-left break-words leading-relaxed max-w-2xl text-lg sm:text-xl md:text-2xl">
+                              {current.question}
+                            </h3>
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+                    </div>
 
                     <PredictionButton
                       onYes={() => selectAnswer(current.id, "yes")}
@@ -861,76 +905,72 @@ if (checkingRole || checkingVote) {
 
             {/* We no longer use step === totalSteps so the above submit works directly on the last step */}
 
-          {showPinPopup && (
-  <div
-    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-    onClick={() => {
-      setShowPinPopup(false);
-      setPin("");
-      setPinError("");
-      setPendingSubmit(false);
-    }}
-  >
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        verifyPin();
-      }}
-      onClick={(e) => e.stopPropagation()}
-      className="bg-white p-6 rounded-[20px] w-[400px] max-w-[90%]"
-    >
-      <h4 className="font-semibold mb-4 text-center">
-        Enter Your 4 Digit PIN
-      </h4>
+            {showPinPopup && (
+              <div
+                className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
+                onClick={() => {
+                  setShowPinPopup(false);
+                  setPin("");
+                  setPinError("");
+                  setPendingSubmit(false);
+                }}
+              >
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    verifyPin();
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="bg-white p-6 rounded-[20px] w-[400px] max-w-[90%]"
+                >
+                  <h4 className="font-semibold mb-4 text-center">
+                    Enter Your 4 Digit PIN
+                  </h4>
 
-      <div className="relative">
-        <input
-          type={showPin ? "text" : "password"}
-          value={pin}
-          onChange={(e) => {
-            const value = e.target.value;
+                  <div className="relative">
+                    <input
+                      type={showPin ? "text" : "password"}
+                      value={pin}
+                      onChange={(e) => {
+                        const value = e.target.value;
 
-            if (!/^\d*$/.test(value)) {
-              setPinError("PIN must contain only numbers");
-              return;
-            }
+                        if (!/^\d*$/.test(value)) {
+                          setPinError("PIN must contain only numbers");
+                          return;
+                        }
 
-            if (value.length > 4) return;
+                        if (value.length > 4) return;
 
-            setPin(value);
+                        setPin(value);
 
-            if (value.length !== 4) {
-              setPinError("PIN must be exactly 4 digits");
-            } else {
-              setPinError("");
-            }
-          }}
-          placeholder="4 Digit PIN"
-          maxLength={4}
-          className="w-full border p-2 rounded mb-2 tracking-widest"
-        />
+                        if (value.length !== 4) {
+                          setPinError("PIN must be exactly 4 digits");
+                        } else {
+                          setPinError("");
+                        }
+                      }}
+                      placeholder="4 Digit PIN"
+                      maxLength={4}
+                      className="w-full border p-2 rounded mb-2 tracking-widest"
+                    />
 
-       <button
-  type="button"
-  onClick={() => setShowPin(!showPin)}
-  className="absolute right-3 top-1/5 flex items-center text-black opacity-80 hover:opacity-100 transition cursor-pointer"
->
-  {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
-</button>
-      </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowPin(!showPin)}
+                      className="absolute right-3 top-1/5 flex items-center text-black opacity-80 hover:opacity-100 transition cursor-pointer"
+                    >
+                      {showPin ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
 
-      {pinError && (
-        <p className="text-red-500 text-sm mb-3">{pinError}</p>
-      )}
+                  {pinError && (
+                    <p className="text-red-500 text-sm mb-3">{pinError}</p>
+                  )}
 
-      <Button
-        type="submit"
-        className="black-text"
-        text="Verify"
-      />
-    </form>
-  </div>
-)}
+                  <Button type="submit" className="black-text" text="Verify" />
+                </form>
+              </div>
+            )}
           </div>
         </div>
 
