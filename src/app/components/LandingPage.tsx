@@ -139,11 +139,16 @@ const isWeekend = day === 0 || day === 6
     if (checkingRole || checkingVote || finished) return;
 
     const loadQuestions = async () => {
-      const q = query(
-        collection(db, "questions"),
-        orderBy("createdAt", "desc"),
-        limit(20), // fetch more so we can remove duplicates safely
-      );
+      const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata",
+})
+
+const q = query(
+  collection(db, "questions"),
+  where("date", "==", today),   // ✅ THIS FIXES EVERYTHING
+  orderBy("createdAt", "desc"),
+  limit(20),
+)
 
       const snap = await getDocs(q);
 
@@ -361,7 +366,9 @@ const isWeekend = day === 0 || day === 6
 
   const hasVotedToday = async (uid: any) => {
     try {
-      const today = new Date().toLocaleDateString("en-CA");
+     const today = new Date().toLocaleDateString("en-CA", {
+  timeZone: "Asia/Kolkata",
+})
 
       const q = query(
         collection(db, "votes"),
