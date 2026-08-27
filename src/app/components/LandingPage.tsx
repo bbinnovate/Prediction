@@ -659,7 +659,7 @@ const q = query(
     return (
       <section className="container h-screen w-full flex justify-center items-center py-0 sm:py-15 lg:py-20">
         <div className="container bg-[#1D1D1D] rounded-[20px] px-10 py-24 text-center relative overflow-hidden max-w-full w-full">
-          <h2 className="text-4xl text-red-400 mb-4">Oops! You missed it ⏰</h2>
+          <h2 className="text-4xl text-red-400 mb-4">Oops!! You missed it ⏰</h2>
 
           <p className="text-gray-300 text-lg">
             Voting closes at <b>10:30 AM</b>.
