@@ -37,6 +37,8 @@ const dateStr = t.toISOString().split("T")[0]
     assignedAt: new Date().toISOString(),
   })
 
+  // Daily email notification disabled as requested
+  /*
   await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/send-curator-email`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -46,4 +48,5 @@ const dateStr = t.toISOString().split("T")[0]
       assignDate: dateStr,
     }),
   })
+  */
 }
